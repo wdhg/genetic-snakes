@@ -6,9 +6,9 @@ author:              "wdhg"
 maintainer:          "wdhgrant@gmail.com"
 copyright:           "2020 wdhg"
 
-extra-source-files:
-- README.md
-- ChangeLog.md
+# extra-source-files:
+# - README.md
+# - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
