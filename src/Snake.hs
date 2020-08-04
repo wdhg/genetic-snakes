@@ -15,7 +15,6 @@ data SnakeGame
     , food   :: Vector
     }
 
-
 instance Show SnakeGame where
   show game@(SnakeGame snake (width, height) food)
     = concatMap showRow [0..height]
