@@ -27,3 +27,7 @@ instance Show SnakeGame where
           | cell `elem` snake = "# "
           | cell == food      = "@ "
           | otherwise         = ". "
+
+add :: Vector -> Vector -> Vector
+add (x1, y1) (x2, y2)
+  = (x1 + x2, y1 + y2)
