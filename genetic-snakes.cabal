@@ -22,7 +22,7 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Snake
   other-modules:
       Paths_genetic_snakes
   hs-source-dirs:
