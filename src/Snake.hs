@@ -58,3 +58,17 @@ move
     put (currentGame
       { snake = add (direction currentGame) (head currentSnake) : (init currentSnake)
       })
+
+outOfBounds :: Vector -> Vector -> Bool
+outOfBounds (maxX, maxY) (x, y)
+  = x < 0 || y < 0 || x >= maxX || y >= maxY
+
+update :: State SnakeGame ()
+update
+  = do
+    currentGame <- get
+    case add (direction currentGame) (head $ snake currentGame) of
+      newHead
+        | outOfBounds (bounds currentGame) newHead -> return ()
+        | newHead == (food currentGame)            -> extend
+        | otherwise                                -> move
