@@ -2,6 +2,8 @@
 
 module Snake where
 
+import Control.Monad.State
+
 type Vector
   = (Int, Int)
 
@@ -16,13 +18,14 @@ type Snake
 
 data SnakeGame
   = SnakeGame
-    { snake  :: Snake
-    , bounds :: Vector
-    , food   :: Vector
+    { snake     :: Snake
+    , bounds    :: Vector
+    , food      :: Vector
+    , direction :: Vector
     }
 
 instance Show SnakeGame where
-  show game@(SnakeGame snake (width, height) food)
+  show game@(SnakeGame snake (width, height) food _)
     = concatMap showRow [0..height]
       where
         showRow :: Int -> String
@@ -37,3 +40,12 @@ instance Show SnakeGame where
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
   = (x1 + x2, y1 + y2)
+
+extend :: State SnakeGame ()
+extend
+  = do
+    currentGame <- get
+    let currentSnake = snake currentGame
+    put (currentGame
+      { snake = add (direction currentGame) (head currentSnake) : currentSnake
+      })
