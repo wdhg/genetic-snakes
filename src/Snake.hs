@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 module Snake where
 
 import Control.Monad.State
@@ -26,11 +24,11 @@ data SnakeGame
 
 instance Show SnakeGame where
   show game@(SnakeGame snake (width, height) food _)
-    = concatMap showRow [0..height]
+    = concatMap showRow [0..height - 1]
       where
         showRow :: Int -> String
         showRow y
-          = concatMap (showCell . (,y)) [0..width] ++ "\n"
+          = concatMap (\x -> showCell (x,y)) [0..width - 1] ++ "\n"
         showCell :: Vector -> String
         showCell cell
           | cell `elem` snake = "# "
