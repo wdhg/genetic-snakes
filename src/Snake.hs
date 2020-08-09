@@ -49,3 +49,12 @@ extend
     put (currentGame
       { snake = add (direction currentGame) (head currentSnake) : currentSnake
       })
+
+move :: State SnakeGame ()
+move
+  = do
+    currentGame <- get
+    let currentSnake = snake currentGame
+    put (currentGame
+      { snake = add (direction currentGame) (head currentSnake) : (init currentSnake)
+      })
