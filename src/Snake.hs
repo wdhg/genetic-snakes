@@ -17,15 +17,14 @@ type Snake
 
 data SnakeGame
   = SnakeGame
-    { snake     :: Snake
-    , bounds    :: Vector
-    , food      :: Vector
-    , direction :: Vector
-    , stdGen    :: StdGen
+    { snake  :: Snake
+    , bounds :: Vector
+    , food   :: Vector
+    , stdGen :: StdGen
     }
 
 instance Show SnakeGame where
-  show game@(SnakeGame snake (width, height) food _ _)
+  show game@(SnakeGame snake (width, height) food _)
     = concatMap showRow [0..height - 1]
       where
         showRow :: Int -> String
@@ -37,25 +36,25 @@ instance Show SnakeGame where
           | cell == food      = "@ "
           | otherwise         = ". "
 
-s = SnakeGame [(0,0)] (5,5) (3,0) right $ mkStdGen 0
+s = SnakeGame [(0,0)] (5,5) (3,0) $ mkStdGen 0
 
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
   = (x1 + x2, y1 + y2)
 
-extend :: Monad m => StateT SnakeGame m ()
-extend
+extend :: Monad m => Vector -> StateT SnakeGame m ()
+extend direction
   = do
     currentGame <- get
     let currentSnake = snake currentGame
     put (currentGame
-      { snake = add (direction currentGame) (head currentSnake) : currentSnake
+      { snake = add direction (head currentSnake) : currentSnake
       })
 
-eatFood :: StateT SnakeGame IO ()
-eatFood
+eatFood :: Vector -> StateT SnakeGame IO ()
+eatFood direction
   = do
-    extend
+    extend direction
     currentGame <- get
     let (maxX, maxY) = bounds currentGame
         cells = [(x, y) | x <- [0..maxX - 1], y <- [0..maxY - 1]]
@@ -66,33 +65,27 @@ eatFood
       , stdGen = gen'
       })
 
-move :: Monad m => StateT SnakeGame m ()
-move
+move :: Monad m => Vector -> StateT SnakeGame m ()
+move direction
   = do
     currentGame <- get
     let currentSnake = snake currentGame
     put (currentGame
-      { snake = add (direction currentGame) (head currentSnake) : (init currentSnake)
+      { snake = add direction (head currentSnake) : (init currentSnake)
       })
 
 outOfBounds :: Vector -> Vector -> Bool
 outOfBounds (maxX, maxY) (x, y)
   = x < 0 || y < 0 || x >= maxX || y >= maxY
 
-update :: StateT SnakeGame IO ()
-update
+update :: Vector -> StateT SnakeGame IO ()
+update direction
   = do
     currentGame <- get
     let currentBody = tail $ snake currentGame
-    case add (direction currentGame) (head $ snake currentGame) of
+    case add direction (head $ snake currentGame) of
       newHead
         | outOfBounds (bounds currentGame) newHead
           || newHead `elem` currentBody            -> return ()
-        | newHead == (food currentGame)            -> eatFood
-        | otherwise                                -> move
-
-turn :: Monad m => Vector -> StateT SnakeGame m ()
-turn newDirection
-  = do
-    currentGame <- get
-    put (currentGame { direction = newDirection})
+        | newHead == (food currentGame)            -> eatFood direction
+        | otherwise                                -> move direction
