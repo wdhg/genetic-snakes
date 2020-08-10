@@ -25,16 +25,20 @@ data SnakeGame
 
 instance Show SnakeGame where
   show game@(SnakeGame snake (width, height) food _)
-    = concatMap showRow [0..height - 1]
+    = top ++ concatMap showRow [0..height - 1] ++ bot
       where
+        bar = concat $ replicate width "━━"
+        top = "\n┏━" ++ bar ++ "━┓\n"
+        bot = "┗━" ++ bar ++ "━┛\n"
         showRow :: Int -> String
         showRow y
-          = concatMap (\x -> showCell (x,y)) [0..width - 1] ++ "\n"
+          = "┃ " ++ concatMap (\x -> showCell (x,y)) [0..width - 1] ++ " ┃\n"
         showCell :: Vector -> String
         showCell cell
-          | cell `elem` snake = "# "
-          | cell == food      = "@ "
-          | otherwise         = ". "
+          | cell == head snake = "▓▓"
+          | cell `elem` snake  = "██"
+          | cell == food       = "▒▒"
+          | otherwise          = "  "
 
 s = SnakeGame [(0,0)] (5,5) (3,0) $ mkStdGen 0
 
@@ -89,3 +93,10 @@ update direction
           || newHead `elem` currentBody            -> return ()
         | newHead == (food currentGame)            -> eatFood direction
         | otherwise                                -> move direction
+
+newGame :: Int -> Int -> Int -> SnakeGame
+newGame width height seed
+  | width > 1 && height > 1 = let gen = mkStdGen seed
+                                  center = (width `div` 2, height `div` 2)
+                              in SnakeGame [(0,0)] (width, height) center gen
+  | otherwise = error "Cannot have map with dimensions <= 1"
