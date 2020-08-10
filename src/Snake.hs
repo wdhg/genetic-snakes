@@ -1,6 +1,7 @@
 module Snake where
 
 import Control.Monad.State
+import System.Random
 
 type Vector
   = (Int, Int)
@@ -20,10 +21,11 @@ data SnakeGame
     , bounds    :: Vector
     , food      :: Vector
     , direction :: Vector
+    , stdGen    :: StdGen
     }
 
 instance Show SnakeGame where
-  show game@(SnakeGame snake (width, height) food _)
+  show game@(SnakeGame snake (width, height) food _ _)
     = concatMap showRow [0..height - 1]
       where
         showRow :: Int -> String
@@ -35,11 +37,13 @@ instance Show SnakeGame where
           | cell == food      = "@ "
           | otherwise         = ". "
 
+s = SnakeGame [(0,0)] (5,5) (3,0) right $ mkStdGen 0
+
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
   = (x1 + x2, y1 + y2)
 
-extend :: State SnakeGame ()
+extend :: Monad m => StateT SnakeGame m ()
 extend
   = do
     currentGame <- get
@@ -48,7 +52,21 @@ extend
       { snake = add (direction currentGame) (head currentSnake) : currentSnake
       })
 
-move :: State SnakeGame ()
+eatFood :: StateT SnakeGame IO ()
+eatFood
+  = do
+    extend
+    currentGame <- get
+    let (maxX, maxY) = bounds currentGame
+        cells = [(x, y) | x <- [0..maxX - 1], y <- [0..maxY - 1]]
+        choices = filter (`notElem` (snake currentGame)) cells
+        (index, gen') = randomR (0, length choices - 1) $ stdGen currentGame
+    put (currentGame
+      { food = choices !! index
+      , stdGen = gen'
+      })
+
+move :: Monad m => StateT SnakeGame m ()
 move
   = do
     currentGame <- get
@@ -61,12 +79,14 @@ outOfBounds :: Vector -> Vector -> Bool
 outOfBounds (maxX, maxY) (x, y)
   = x < 0 || y < 0 || x >= maxX || y >= maxY
 
-update :: State SnakeGame ()
+update :: StateT SnakeGame IO ()
 update
   = do
     currentGame <- get
+    let currentBody = tail $ snake currentGame
     case add (direction currentGame) (head $ snake currentGame) of
       newHead
-        | outOfBounds (bounds currentGame) newHead -> return ()
-        | newHead == (food currentGame)            -> extend
+        | outOfBounds (bounds currentGame) newHead
+          || newHead `elem` currentBody            -> return ()
+        | newHead == (food currentGame)            -> eatFood
         | otherwise                                -> move

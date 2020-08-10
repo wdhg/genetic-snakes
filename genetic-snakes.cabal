@@ -30,6 +30,7 @@ library
   build-depends:
       base >=4.7 && <5
     , mtl >=2.2 && <3
+    , random >=1.1 && <1.2
   default-language: Haskell2010
 
 executable genetic-snakes-exe
@@ -43,6 +44,7 @@ executable genetic-snakes-exe
       base >=4.7 && <5
     , genetic-snakes
     , mtl >=2.2 && <3
+    , random >=1.1 && <1.2
   default-language: Haskell2010
 
 test-suite genetic-snakes-test
@@ -57,4 +59,5 @@ test-suite genetic-snakes-test
       base >=4.7 && <5
     , genetic-snakes
     , mtl >=2.2 && <3
+    , random >=1.1 && <1.2
   default-language: Haskell2010
