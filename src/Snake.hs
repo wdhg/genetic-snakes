@@ -90,3 +90,9 @@ update
           || newHead `elem` currentBody            -> return ()
         | newHead == (food currentGame)            -> eatFood
         | otherwise                                -> move
+
+turn :: Monad m => Vector -> StateT SnakeGame m ()
+turn newDirection
+  = do
+    currentGame <- get
+    put (currentGame { direction = newDirection})
