@@ -35,8 +35,8 @@ instance Show SnakeGame where
           = "┃ " ++ concatMap (\x -> showCell (x,y)) [0..width - 1] ++ " ┃\n"
         showCell :: Vector -> String
         showCell cell
-          | cell == head snake = "▓▓"
-          | cell `elem` snake  = "██"
+          | cell == head snake = "██"
+          | cell `elem` snake  = "▓▓"
           | cell == food       = "▒▒"
           | otherwise          = "  "
 
