@@ -28,11 +28,11 @@ instance Show SnakeGame where
     = top ++ concatMap showRow [0..height - 1] ++ bot
       where
         bar = concat $ replicate width "━━"
-        top = "\n┏━" ++ bar ++ "━┓\n"
-        bot = "┗━" ++ bar ++ "━┛\n"
+        top = "\n┏━" ++ bar ++ "━┓"
+        bot = "\n┗━" ++ bar ++ "━┛\n"
         showRow :: Int -> String
         showRow y
-          = "┃ " ++ concatMap (\x -> showCell (x,y)) [0..width - 1] ++ " ┃\n"
+          = "\n┃ " ++ concatMap (\x -> showCell (x,y)) [0..width - 1] ++ " ┃"
         showCell :: Vector -> String
         showCell cell
           | cell == head snake = "██"
