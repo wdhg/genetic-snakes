@@ -40,8 +40,6 @@ instance Show SnakeGame where
           | cell == food       = "▒▒"
           | otherwise          = "  "
 
-s = SnakeGame [(0,0)] (5,5) (3,0) $ mkStdGen 0
-
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
   = (x1 + x2, y1 + y2)
