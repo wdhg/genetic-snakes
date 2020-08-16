@@ -1,5 +1,7 @@
 module Neat where
 
+import System.Random
+
 type Node
   = Int
 
@@ -9,3 +11,6 @@ type Gene
 
 type Genome
   = [Gene]
+
+data Organism
+  = Organism Genome StdGen
