@@ -5,11 +5,11 @@ import System.Random
 
 -- config
 -- weight mutation
-mutateGeneWeightChance = 0.8 :: Float
-perturbChance = 0.9          :: Float
-maxPerturbAmount = 0.2       :: Float
+mutateWeightsChance = 0.8 :: Float
+perturbChance = 0.9       :: Float
+maxPerturbAmount = 0.2    :: Float
 -- reenable mutation
-mutateGeneReenableChance = 0.1 :: Float
+reenableChance = 0.1 :: Float
 
 type Node
   = Int
@@ -27,49 +27,53 @@ data Gene
 type Genome
   = [Gene]
 
-data Organism
-  = Organism Genome StdGen
+type Mutation m
+  = m -> State StdGen m
 
-chanceIfElse :: Monad m => Float -> StateT (a, StdGen) m () ->
-  StateT (a, StdGen) m () -> StateT (a, StdGen) m ()
-chanceIfElse chance actionThen actionElse
+chanceMutations :: Float -> Mutation a -> Mutation a -> Mutation a
+chanceMutations chance mutationThen mutationElse mutable
   = do
-    (s, gen) <- get
-    let (value, gen') = randomR (0, 1) gen
-    put (s, gen')
+    gen <- get
+    let (value, gen') = randomR (0, 1) gen :: (Float, StdGen)
+    put gen'
     if value <= chance
-      then actionThen
-      else actionElse
+       then mutationThen mutable
+       else mutationElse mutable
 
-chanceIf :: Monad m => Float -> StateT (a, StdGen) m () ->
-  StateT (a, StdGen) m ()
-chanceIf chance action
-  = chanceIfElse chance action (state $ \s -> ((), s))
+chanceMutation :: Float -> Mutation a -> Mutation a
+chanceMutation chance mutationThen
+  = chanceMutations chance mutationThen (\m -> state $ \s -> (m, s))
 
-perturbGeneWeight :: Monad m => StateT (Gene, StdGen) m ()
-perturbGeneWeight
-  = state $ \(gene, gen) ->
+pureMutation :: Mutation a
+pureMutation x
+  = state $ \s -> (x, s)
+
+perturbGeneWeight :: Mutation Gene
+perturbGeneWeight gene
+  = state $ \gen ->
       let (offset, gen') = randomR (-maxPerturbAmount, maxPerturbAmount) gen
-      in ((), (gene {weight = weight gene + offset}, gen'))
+      in (gene {weight = weight gene + offset}, gen')
 
-reassignGeneWeight :: Monad m => StateT (Gene, StdGen) m ()
-reassignGeneWeight
-  = state $ \(gene, gen) ->
+reassignGeneWeight :: Mutation Gene
+reassignGeneWeight gene
+  = state $ \gen ->
       let (weight', gen') = randomR (0, 1) gen
-      in ((), (gene {weight = weight'}, gen'))
+      in (gene {weight = weight'}, gen')
 
-reenableGene :: Monad m => StateT (Gene, StdGen) m ()
-reenableGene
+mutateWeight :: Mutation Gene
+mutateWeight
+  = chanceMutations perturbChance perturbGeneWeight reassignGeneWeight
+
+mutateWeights :: Mutation Genome
+mutateWeights
+  = mapM mutateWeight
+
+reenableGene :: Mutation Gene
+reenableGene gene
+  = return $ gene {enabled = True}
+
+mutateGenome :: Mutation Genome
+mutateGenome genome
   = do
-    (gene, gen) <- get
-    put (gene {enabled = True}, gen)
-
-mutateGene :: Monad m => StateT (Gene, StdGen) m ()
-mutateGene
-  = do
-    chanceIfElse perturbChance perturbGeneWeight reassignGeneWeight
-    chanceIf mutateGeneReenableChance reenableGene
-
-mutate :: Monad m => StateT () m Organism
-mutate
-  = undefined
+    genome' <- chanceMutation mutateWeightsChance mutateWeights genome
+    mapM (chanceMutation reenableChance reenableGene) genome'
