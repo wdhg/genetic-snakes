@@ -1,5 +1,6 @@
 module Neat where
 
+import Control.Monad       ((>=>))
 import Control.Monad.State
 import System.Random
 
@@ -66,14 +67,16 @@ mutateWeight
 
 mutateWeights :: Mutation Genome
 mutateWeights
-  = mapM mutateWeight
+  = chanceMutation mutateWeightsChance $ mapM mutateWeight
 
 reenableGene :: Mutation Gene
 reenableGene gene
   = return $ gene {enabled = True}
 
+reenableGenes :: Mutation Genome
+reenableGenes
+  = mapM $ chanceMutation reenableChance reenableGene
+
 mutateGenome :: Mutation Genome
-mutateGenome genome
-  = do
-    genome' <- chanceMutation mutateWeightsChance mutateWeights genome
-    mapM (chanceMutation reenableChance reenableGene) genome'
+mutateGenome
+  = mutateWeights >=> reenableGenes
