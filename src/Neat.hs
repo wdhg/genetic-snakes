@@ -25,6 +25,14 @@ data Gene
     }
     deriving Show
 
+instance Eq Gene where
+  gene1 == gene2
+    = (innovationID gene1) == (innovationID gene2)
+
+instance Ord Gene where
+  compare gene1 gene2
+    = compare (innovationID gene1) (innovationID gene2)
+
 type Genome
   = [Gene]
 
@@ -80,3 +88,13 @@ reenableGenes
 mutateGenome :: Mutation Genome
 mutateGenome
   = mutateWeights >=> reenableGenes
+
+alignGenes :: Genome -> Genome -> [(Maybe Gene, Maybe Gene)]
+alignGenes genome1 []
+  = map (\gene -> (Just gene, Nothing)) genome1
+alignGenes [] genome2
+  = map (\gene -> (Nothing, Just gene)) genome2
+alignGenes genome1@(gene1:genes1) genome2@(gene2:genes2)
+  | gene1 < gene2 = (Just gene1, Nothing) : alignGenes genes1 genome2
+  | gene1 > gene2 = (Nothing, Just gene2) : alignGenes genome1 genes2
+  | otherwise     = (Just gene1, Just gene2) : alignGenes genes1 genes2
