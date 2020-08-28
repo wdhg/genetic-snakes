@@ -1,6 +1,5 @@
 module Neat where
 
-import Control.Monad       ((>=>))
 import Control.Monad.State
 import System.Random
 
@@ -33,8 +32,11 @@ instance Ord Gene where
   compare gene1 gene2
     = compare (innovationID gene1) (innovationID gene2)
 
-type Genome
-  = [Gene]
+data Genome
+  = Genome
+    { genes :: [Gene]
+    , nodes :: Int
+    }
 
 type Mutation m
   = m -> State StdGen m
@@ -73,7 +75,7 @@ mutateWeight :: Mutation Gene
 mutateWeight
   = chanceMutations perturbChance perturbGeneWeight reassignGeneWeight
 
-mutateWeights :: Mutation Genome
+mutateWeights :: Mutation [Gene]
 mutateWeights
   = chanceMutation mutateWeightsChance $ mapM mutateWeight
 
@@ -81,20 +83,22 @@ reenableGene :: Mutation Gene
 reenableGene gene
   = return $ gene {enabled = True}
 
-reenableGenes :: Mutation Genome
+reenableGenes :: Mutation [Gene]
 reenableGenes
   = mapM $ chanceMutation reenableChance reenableGene
 
 mutateGenome :: Mutation Genome
-mutateGenome
-  = mutateWeights >=> reenableGenes
+mutateGenome genome
+  = do
+    genes' <- mutateWeights (genes genome) >>= reenableGenes
+    return $ genome {genes = genes'}
 
-alignGenes :: Genome -> Genome -> [(Maybe Gene, Maybe Gene)]
-alignGenes genome1 []
-  = map (\gene -> (Just gene, Nothing)) genome1
-alignGenes [] genome2
-  = map (\gene -> (Nothing, Just gene)) genome2
-alignGenes genome1@(gene1:genes1) genome2@(gene2:genes2)
-  | gene1 < gene2 = (Just gene1, Nothing) : alignGenes genes1 genome2
-  | gene1 > gene2 = (Nothing, Just gene2) : alignGenes genome1 genes2
-  | otherwise     = (Just gene1, Just gene2) : alignGenes genes1 genes2
+alignGenes :: [Gene] -> [Gene] -> [(Maybe Gene, Maybe Gene)]
+alignGenes genes1 []
+  = map (\gene -> (Just gene, Nothing)) genes1
+alignGenes [] genes2
+  = map (\gene -> (Nothing, Just gene)) genes2
+alignGenes genes1@(gene1:genes1') genes2@(gene2:genes2')
+  | gene1 < gene2 = (Just gene1, Nothing) : alignGenes genes1' genes2
+  | gene1 > gene2 = (Nothing, Just gene2) : alignGenes genes1 genes2'
+  | otherwise     = (Just gene1, Just gene2) : alignGenes genes1' genes2'
