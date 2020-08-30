@@ -64,10 +64,6 @@ chanceMutation :: Float -> Mutation a -> Mutation a
 chanceMutation chance mutationThen
   = chanceMutations chance mutationThen (\m -> state $ \s -> (m, s))
 
-pureMutation :: Mutation a
-pureMutation x
-  = state $ \s -> (x, s)
-
 perturbGeneWeight :: Mutation Gene
 perturbGeneWeight gene
   = state $ \sim ->
