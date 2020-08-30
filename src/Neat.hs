@@ -1,5 +1,6 @@
 module Neat where
 
+import Control.Monad       ((>=>))
 import Control.Monad.State
 import System.Random
 
@@ -19,6 +20,7 @@ data SimulationState
     { gen         :: StdGen
     , innovations :: Int
     }
+    deriving (Show)
 
 data Gene
   = Gene
@@ -28,7 +30,7 @@ data Gene
     , enabled      :: Bool
     , innovationID :: Int
     }
-    deriving Show
+    deriving (Show)
 
 instance Eq Gene where
   gene1 == gene2
@@ -43,6 +45,7 @@ data Genome
     { genes :: [Gene]
     , nodes :: Int
     }
+    deriving (Show)
 
 type Mutation m
   = m -> State SimulationState m
@@ -97,7 +100,8 @@ reenableGenes
 mutateGenome :: Mutation Genome
 mutateGenome genome
   = do
-    genes' <- mutateWeights (genes genome) >>= reenableGenes
+    let mutation = (mutateWeights >=> reenableGenes)
+    genes' <- mutation $ genes genome
     return $ genome {genes = genes'}
 
 alignGenes :: [Gene] -> [Gene] -> [(Maybe Gene, Maybe Gene)]
