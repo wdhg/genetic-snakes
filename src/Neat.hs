@@ -14,6 +14,12 @@ reenableChance = 0.1 :: Float
 type Node
   = Int
 
+data SimulationState
+  = SimulationState
+    { gen         :: StdGen
+    , innovations :: Int
+    }
+
 data Gene
   = Gene
     { inNode       :: Node
@@ -39,14 +45,14 @@ data Genome
     }
 
 type Mutation m
-  = m -> State StdGen m
+  = m -> State SimulationState m
 
 chanceMutations :: Float -> Mutation a -> Mutation a -> Mutation a
 chanceMutations chance mutationThen mutationElse mutable
   = do
-    gen <- get
-    let (value, gen') = randomR (0, 1) gen :: (Float, StdGen)
-    put gen'
+    sim <- get
+    let (value, gen') = randomR (0, 1) (gen sim) :: (Float, StdGen)
+    put (sim {gen = gen'})
     if value <= chance
        then mutationThen mutable
        else mutationElse mutable
@@ -61,15 +67,16 @@ pureMutation x
 
 perturbGeneWeight :: Mutation Gene
 perturbGeneWeight gene
-  = state $ \gen ->
-      let (offset, gen') = randomR (-maxPerturbAmount, maxPerturbAmount) gen
-      in (gene {weight = weight gene + offset}, gen')
+  = state $ \sim ->
+      let (offset, gen')
+            = randomR (-maxPerturbAmount, maxPerturbAmount) (gen sim)
+       in (gene {weight = weight gene + offset}, sim {gen = gen'})
 
 reassignGeneWeight :: Mutation Gene
 reassignGeneWeight gene
-  = state $ \gen ->
-      let (weight', gen') = randomR (0, 1) gen
-      in (gene {weight = weight'}, gen')
+  = state $ \sim ->
+      let (weight', gen') = randomR (0, 1) (gen sim)
+       in (gene {weight = weight'}, sim {gen = gen'})
 
 mutateWeight :: Mutation Gene
 mutateWeight
