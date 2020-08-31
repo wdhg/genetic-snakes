@@ -24,6 +24,7 @@ library
   exposed-modules:
       Neat
       Snake
+      Utils
   other-modules:
       Paths_genetic_snakes
   hs-source-dirs:

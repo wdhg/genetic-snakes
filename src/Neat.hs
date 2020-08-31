@@ -3,6 +3,7 @@ module Neat where
 import Control.Monad       ((>=>))
 import Control.Monad.State
 import System.Random
+import Utils               (getIndex, replaceAt)
 
 -- config
 -- weight mutation
@@ -15,17 +16,9 @@ reenableChance = 0.1 :: Float
 type Node
   = Int
 
-data SimulationState
-  = SimulationState
-    { gen         :: StdGen
-    , innovations :: Int
-    }
-    deriving (Show)
-
 data Gene
   = Gene
-    { inNode       :: Node
-    , outNode      :: Node
+    { link         :: (Node, Node)
     , weight       :: Float
     , enabled      :: Bool
     , innovationID :: Int
@@ -44,6 +37,13 @@ data Genome
   = Genome
     { genes :: [Gene]
     , nodes :: Int
+    }
+    deriving (Show)
+
+data SimulationState
+  = SimulationState
+    { gen         :: StdGen
+    , innovations :: [(Node, Node)]
     }
     deriving (Show)
 
@@ -85,13 +85,51 @@ mutateWeights :: Mutation [Gene]
 mutateWeights
   = chanceMutation mutateWeightsChance $ mapM mutateWeight
 
-reenableGene :: Mutation Gene
-reenableGene gene
-  = return $ gene {enabled = True}
+setEnabledTo :: Bool -> Gene -> Gene
+setEnabledTo isEnabled gene
+  = gene {enabled = isEnabled}
 
 reenableGenes :: Mutation [Gene]
 reenableGenes
-  = mapM $ chanceMutation reenableChance reenableGene
+  = mapM $ chanceMutation reenableChance $ return . setEnabledTo True
+
+getInnovationID :: (Node, Node) -> State SimulationState Int
+getInnovationID link
+  = do
+    sim <- get
+    case getIndex link $ innovations sim of
+      Just index -> return index
+      Nothing -> do
+        put (sim {innovations = innovations sim ++ [link]}) -- append to end
+        return $ length $ innovations sim
+
+pickRandomGene :: Genome -> State SimulationState Int
+pickRandomGene genome
+  = do
+    sim <- get
+    let geneCount     = length $ genes genome
+        (index, gen') = randomR (0, geneCount - 1) (gen sim)
+    put (sim {gen = gen'})
+    return index
+
+mutateNode :: Mutation Genome
+mutateNode genome
+  = do
+    sim <- get
+    index <- pickRandomGene genome
+    let newNode           = nodes genome
+        gene              = setEnabledTo False $ genes genome !! index
+        (inNode, outNode) = link gene
+        linkIn            = (inNode, newNode)
+        linkOut           = (newNode, outNode)
+    innovationIn  <- getInnovationID linkIn
+    innovationOut <- getInnovationID linkOut
+    let geneIn  = Gene linkIn 1.0 True innovationIn
+        geneOut = Gene linkOut (weight gene) True innovationOut
+    return $ Genome
+      { genes = geneOut : geneIn : (replaceAt index gene $ genes genome)
+      , nodes = newNode + 1
+      }
 
 mutateGenome :: Mutation Genome
 mutateGenome genome
