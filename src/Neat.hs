@@ -13,12 +13,18 @@ maxPerturbAmount = 0.2    :: Float
 -- reenable mutation
 reenableChance = 0.1 :: Float
 
-type Node
-  = Int
+data Node
+  = Input Int
+  | Output Int
+  | Hidden Int
+    deriving (Show, Eq, Ord)
+
+type Link
+  = (Node, Node)
 
 data Gene
   = Gene
-    { link         :: (Node, Node)
+    { link         :: Link
     , weight       :: Float
     , enabled      :: Bool
     , innovationID :: Int
@@ -35,15 +41,17 @@ instance Ord Gene where
 
 data Genome
   = Genome
-    { genes :: [Gene]
-    , nodes :: Int
+    { genes   :: [Gene]
+    , inputs  :: Int
+    , outputs :: Int
+    , hidden  :: Int
     }
     deriving (Show)
 
 data SimulationState
   = SimulationState
     { gen         :: StdGen
-    , innovations :: [(Node, Node)]
+    , innovations :: [Link]
     }
     deriving (Show)
 
@@ -93,7 +101,7 @@ reenableGenes :: Mutation [Gene]
 reenableGenes
   = mapM $ chanceMutation reenableChance $ return . setEnabledTo True
 
-getInnovationID :: (Node, Node) -> State SimulationState Int
+getInnovationID :: Link -> State SimulationState Int
 getInnovationID link
   = do
     sim <- get
@@ -117,7 +125,7 @@ mutateNode genome
   = do
     sim <- get
     index <- pickRandomGene genome
-    let newNode           = nodes genome
+    let newNode           = Hidden $ hidden genome
         gene              = setEnabledTo False $ genes genome !! index
         (inNode, outNode) = link gene
         linkIn            = (inNode, newNode)
@@ -126,9 +134,9 @@ mutateNode genome
     innovationOut <- getInnovationID linkOut
     let geneIn  = Gene linkIn 1.0 True innovationIn
         geneOut = Gene linkOut (weight gene) True innovationOut
-    return $ Genome
+    return $ genome
       { genes = geneOut : geneIn : (replaceAt index gene $ genes genome)
-      , nodes = newNode + 1
+      , hidden = hidden genome + 1
       }
 
 mutateGenome :: Mutation Genome
