@@ -48,7 +48,7 @@ mutateWeight
     where
       perturbChance = 0.9
 
-mutateWeights :: Mutation [Gene]
+mutateWeights :: Mutation Genome
 mutateWeights
   = mapM mutateWeight
 
@@ -56,7 +56,7 @@ setEnabledTo :: Bool -> Gene -> Gene
 setEnabledTo isEnabled gene
   = gene {enabled = isEnabled}
 
-reenableGenes :: Mutation [Gene]
+reenableGenes :: Mutation Genome
 reenableGenes
   = mapM (return . setEnabledTo True)
 
@@ -70,22 +70,22 @@ getInnovationID link
         put (sim {innovations = innovations sim ++ [link]}) -- append to end
         return $ length $ innovations sim
 
-pickRandomGene :: Genome -> State SimulationState Int
-pickRandomGene genome
+pickRandomGene :: Organism -> State SimulationState Int
+pickRandomGene organism
   = do
     sim <- get
-    let geneCount     = length $ genes genome
+    let geneCount     = length $ genome organism
         (index, gen') = randomR (0, geneCount - 1) $ gen sim
     put (sim {gen = gen'})
     return index
 
-mutateNode :: Mutation Genome
-mutateNode genome
+mutateNode :: Mutation Organism
+mutateNode organism
   = do
     sim <- get
-    index <- pickRandomGene genome
-    let newNode           = Hidden $ hidden genome
-        gene              = setEnabledTo False $ genes genome !! index
+    index <- pickRandomGene organism
+    let newNode           = Hidden $ hidden organism
+        gene              = setEnabledTo False $ genome organism !! index
         (inNode, outNode) = link gene
         linkIn            = (inNode, newNode)
         linkOut           = (newNode, outNode)
@@ -93,57 +93,57 @@ mutateNode genome
     innovationOut <- getInnovationID linkOut
     let geneIn  = Gene linkIn 1.0 True innovationIn
         geneOut = Gene linkOut (weight gene) True innovationOut
-    return $ genome
-      { genes = geneOut : geneIn : (replaceAt index gene $ genes genome)
-      , hidden = hidden genome + 1
+    return $ organism
+      { genome = geneOut : geneIn : (replaceAt index gene $ genome organism)
+      , hidden = hidden organism + 1
       }
 
-getIncommingNodes :: Genome -> Node -> [Node]
-getIncommingNodes genome outputNode
+getIncommingNodes :: Organism -> Node -> [Node]
+getIncommingNodes organism outputNode
   = let incomming
           = map (fst . link)
             $ filter ((== outputNode) . snd . link)
-            $ genes genome
-     in incomming ++ (concatMap (getIncommingNodes genome) incomming)
+            $ genome organism
+     in incomming ++ (concatMap (getIncommingNodes organism) incomming)
 
-isCyclic :: Genome -> Link -> Bool
-isCyclic genome (inNode, outNode)
-  = outNode `elem` (getIncommingNodes genome inNode)
+isCyclic :: Organism -> Link -> Bool
+isCyclic organism (inNode, outNode)
+  = outNode `elem` (getIncommingNodes organism inNode)
 
-genValidLinks :: Genome -> [Link]
-genValidLinks genome
-  = let inputNodes  = map Input $ [0..inputs genome - 1]
-        outputNodes = map Output $ [0..outputs genome - 1]
-        hiddenNodes = map Hidden $ [0..hidden genome - 1]
+genValidLinks :: Organism -> [Link]
+genValidLinks organism
+  = let inputNodes  = map Input $ [0..inputs organism - 1]
+        outputNodes = map Output $ [0..outputs organism - 1]
+        hiddenNodes = map Hidden $ [0..hidden organism - 1]
         linkInputs  = inputNodes ++ hiddenNodes
         linkOutputs = outputNodes ++ hiddenNodes
         allLinks
           = [(linkIn, linkOut) | linkIn <- linkInputs, linkOut <- linkOutputs]
         existingLinks
-          = map link $ genes genome
-     in filter (\l -> (not $ isCyclic genome l) && (l `notElem` existingLinks)) allLinks
+          = map link $ genome organism
+     in filter (\l -> (not $ isCyclic organism l) && (l `notElem` existingLinks)) allLinks
 
-mutateLink :: Mutation Genome
-mutateLink genome
+mutateLink :: Mutation Organism
+mutateLink organism
   = do
     sim <- get
-    case genValidLinks genome of
-      []          -> return genome
+    case genValidLinks organism of
+      []          -> return organism
       validLinks  -> do
         let (index, gen') = randomR (0, length validLinks - 1) $ gen sim
             newLink       = validLinks !! index
         put (sim {gen = gen'})
         innovationID <- getInnovationID newLink
         newGene <- reassignGeneWeight $ Gene newLink 0.0 True innovationID
-        return (genome {genes = newGene : genes genome})
+        return (organism {genome = newGene : genome organism})
 
-mutateGenome :: Mutation Genome
-mutateGenome genome
+mutateGenome :: Mutation Organism
+mutateGenome organism
   = do
-    let genesMutation
+    let genomeMutation
           = (chanceMutation 0.8 mutateWeights >=> chanceMutation 0.1 reenableGenes)
-        genomeMutation
+        organismMutation
           = (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode)
-    genes' <- genesMutation $ genes genome
-    let genome' = genome {genes = genes'}
-    genomeMutation genome'
+    genome' <- genomeMutation $ genome organism
+    let organism' = organism {genome = genome'}
+    organismMutation organism'

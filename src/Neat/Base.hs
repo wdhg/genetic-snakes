@@ -2,7 +2,8 @@ module Neat.Base
   ( Node(..)
   , Link
   , Gene(..)
-  , Genome(..)
+  , Genome
+  , Organism(..)
   , SimulationState(..)
   ) where
 
@@ -34,9 +35,12 @@ instance Ord Gene where
   compare gene1 gene2
     = compare (innovationID gene1) (innovationID gene2)
 
-data Genome
-  = Genome
-    { genes   :: [Gene]
+type Genome
+  = [Gene]
+
+data Organism
+  = Organism
+    { genome  :: Genome
     , inputs  :: Int
     , outputs :: Int
     , hidden  :: Int
