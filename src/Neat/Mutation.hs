@@ -144,6 +144,6 @@ mutateGenome genome
           = (chanceMutation 0.8 mutateWeights >=> chanceMutation 0.1 reenableGenes)
         genomeMutation
           = (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode)
-    genes' <- genesMutation$ genes genome
+    genes' <- genesMutation $ genes genome
     let genome' = genome {genes = genes'}
     genomeMutation genome'
