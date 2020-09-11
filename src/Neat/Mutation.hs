@@ -8,18 +8,13 @@ import Neat.Base
 import Neat.Utils          (getIndex, replaceAt)
 import System.Random
 
--- config
--- weight mutation
-mutateWeightsChance = 0.8 :: Float
-perturbChance = 0.9       :: Float
-maxPerturbAmount = 0.2    :: Float
--- reenable mutation
-reenableChance = 0.1 :: Float
+type Chance
+  = Float
 
 type Mutation m
   = m -> State SimulationState m
 
-chanceMutations :: Float -> Mutation a -> Mutation a -> Mutation a
+chanceMutations :: Chance -> Mutation a -> Mutation a -> Mutation a
 chanceMutations chance mutationThen mutationElse mutable
   = do
     sim <- get
@@ -29,14 +24,15 @@ chanceMutations chance mutationThen mutationElse mutable
        then mutationThen mutable
        else mutationElse mutable
 
-chanceMutation :: Float -> Mutation a -> Mutation a
+chanceMutation :: Chance -> Mutation a -> Mutation a
 chanceMutation chance mutationThen
   = chanceMutations chance mutationThen (\m -> state $ \s -> (m, s))
 
 perturbGeneWeight :: Mutation Gene
 perturbGeneWeight gene
   = state $ \sim ->
-      let (offset, gen')
+      let maxPerturbAmount = 0.2
+          (offset, gen')
             = randomR (-maxPerturbAmount, maxPerturbAmount) (gen sim)
        in (gene {weight = weight gene + offset}, sim {gen = gen'})
 
@@ -49,10 +45,12 @@ reassignGeneWeight gene
 mutateWeight :: Mutation Gene
 mutateWeight
   = chanceMutations perturbChance perturbGeneWeight reassignGeneWeight
+    where
+      perturbChance = 0.9
 
 mutateWeights :: Mutation [Gene]
 mutateWeights
-  = chanceMutation mutateWeightsChance $ mapM mutateWeight
+  = mapM mutateWeight
 
 setEnabledTo :: Bool -> Gene -> Gene
 setEnabledTo isEnabled gene
@@ -60,7 +58,7 @@ setEnabledTo isEnabled gene
 
 reenableGenes :: Mutation [Gene]
 reenableGenes
-  = mapM $ chanceMutation reenableChance $ return . setEnabledTo True
+  = mapM (return . setEnabledTo True)
 
 getInnovationID :: Link -> State SimulationState Int
 getInnovationID link
@@ -103,9 +101,9 @@ mutateNode genome
 getIncommingNodes :: Genome -> Node -> [Node]
 getIncommingNodes genome outputNode
   = let incomming
-          = map (fst . link) $
-            filter ((== outputNode) . snd . link) $
-            genes genome
+          = map (fst . link)
+            $ filter ((== outputNode) . snd . link)
+            $ genes genome
      in incomming ++ (concatMap (getIncommingNodes genome) incomming)
 
 isCyclic :: Genome -> Link -> Bool
@@ -142,6 +140,10 @@ mutateLink genome
 mutateGenome :: Mutation Genome
 mutateGenome genome
   = do
-    let mutation = (mutateWeights >=> reenableGenes)
-    genes' <- mutation $ genes genome
-    return $ genome {genes = genes'}
+    let genesMutation
+          = (chanceMutation 0.8 mutateWeights >=> chanceMutation 0.1 reenableGenes)
+        genomeMutation
+          = (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode)
+    genes' <- genesMutation$ genes genome
+    let genome' = genome {genes = genes'}
+    genomeMutation genome'
