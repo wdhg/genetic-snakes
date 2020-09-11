@@ -19,11 +19,9 @@ isCyclic organism (inNode, outNode)
 
 genValidLinks :: Organism -> [Link]
 genValidLinks organism
-  = let inputNodes  = map Input $ [0..inputs organism - 1]
-        outputNodes = map Output $ [0..outputs organism - 1]
-        hiddenNodes = map Hidden $ [0..hidden organism - 1]
-        linkInputs  = inputNodes ++ hiddenNodes
-        linkOutputs = outputNodes ++ hiddenNodes
+  = let hiddenNodes = map Hidden $ [0..hidden organism - 1]
+        linkInputs  = (map Input $ [0..inputs organism -1]) ++ hiddenNodes
+        linkOutputs = (map Output $ [0..outputs organism - 1]) ++ hiddenNodes
         allLinks
           = [(linkIn, linkOut) | linkIn <- linkInputs, linkOut <- linkOutputs]
         existingLinks
