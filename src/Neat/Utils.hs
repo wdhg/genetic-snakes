@@ -1,4 +1,4 @@
-module Utils where
+module Neat.Utils where
 
 replaceAt :: Int -> a -> [a] -> [a]
 replaceAt _ _ []
