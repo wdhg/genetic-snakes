@@ -5,9 +5,12 @@ module Neat.Base
   , Genome
   , Organism(..)
   , SimulationState(..)
+  , module Control.Monad.State
+  , module System.Random
   ) where
 
-import System.Random (StdGen)
+import Control.Monad.State
+import System.Random
 
 data Node
   = Input Int
