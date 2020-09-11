@@ -23,8 +23,11 @@ source-repository head
 library
   exposed-modules:
       Neat
+      Neat.Base
+      Neat.Breeding
+      Neat.Mutation
+      Neat.Utils
       Snake
-      Utils
   other-modules:
       Paths_genetic_snakes
   hs-source-dirs:
