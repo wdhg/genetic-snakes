@@ -116,7 +116,7 @@ pickRandomGene genome
   = do
     sim <- get
     let geneCount     = length $ genes genome
-        (index, gen') = randomR (0, geneCount - 1) (gen sim)
+        (index, gen') = randomR (0, geneCount - 1) $ gen sim
     put (sim {gen = gen'})
     return index
 
@@ -138,6 +138,45 @@ mutateNode genome
       { genes = geneOut : geneIn : (replaceAt index gene $ genes genome)
       , hidden = hidden genome + 1
       }
+
+getIncommingNodes :: Genome -> Node -> [Node]
+getIncommingNodes genome outputNode
+  = let incomming
+          = map (fst . link) $
+            filter ((== outputNode) . snd . link) $
+            genes genome
+     in incomming ++ (concatMap (getIncommingNodes genome) incomming)
+
+isCyclic :: Genome -> Link -> Bool
+isCyclic genome (inNode, outNode)
+  = outNode `elem` (getIncommingNodes genome inNode)
+
+genValidLinks :: Genome -> [Link]
+genValidLinks genome
+  = let inputNodes  = map Input $ [0..inputs genome - 1]
+        outputNodes = map Output $ [0..outputs genome - 1]
+        hiddenNodes = map Hidden $ [0..hidden genome - 1]
+        linkInputs  = inputNodes ++ hiddenNodes
+        linkOutputs = outputNodes ++ hiddenNodes
+        allLinks
+          = [(linkIn, linkOut) | linkIn <- linkInputs, linkOut <- linkOutputs]
+        existingLinks
+          = map link $ genes genome
+     in filter (\l -> (not $ isCyclic genome l) && (l `notElem` existingLinks)) allLinks
+
+mutateLink :: Mutation Genome
+mutateLink genome
+  = do
+    sim <- get
+    case genValidLinks genome of
+      []          -> return genome
+      validLinks  -> do
+        let (index, gen') = randomR (0, length validLinks - 1) $ gen sim
+            newLink       = validLinks !! index
+        put (sim {gen = gen'})
+        innovationID <- getInnovationID newLink
+        newGene <- reassignGeneWeight $ Gene newLink 0.0 True innovationID
+        return (genome {genes = newGene : genes genome})
 
 mutateGenome :: Mutation Genome
 mutateGenome genome
