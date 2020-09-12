@@ -22,7 +22,7 @@ setEnabledTo :: Bool -> Gene -> Gene
 setEnabledTo isEnabled gene
   = gene {enabled = isEnabled}
 
-chanceMutations :: Chance -> Mutation a -> Mutation a -> Mutation a
+chanceMutations :: Chance -> Mutation m -> Mutation m -> Mutation m
 chanceMutations chance mutationThen mutationElse mutable
   = do
     sim <- get
@@ -32,6 +32,6 @@ chanceMutations chance mutationThen mutationElse mutable
        then mutationThen mutable
        else mutationElse mutable
 
-chanceMutation :: Chance -> Mutation a -> Mutation a
+chanceMutation :: Chance -> Mutation m -> Mutation m
 chanceMutation chance mutationThen
   = chanceMutations chance mutationThen (\m -> state $ \s -> (m, s))
