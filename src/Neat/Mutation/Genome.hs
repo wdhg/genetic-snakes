@@ -11,3 +11,7 @@ reenableGenes
 mutateWeights :: Mutation Genome
 mutateWeights
   = mapM mutateWeight
+
+mutateGenome :: Mutation Genome
+mutateGenome
+  = chanceMutation 0.8 mutateWeights >=> chanceMutation 0.1 reenableGenes

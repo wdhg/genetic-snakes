@@ -80,13 +80,9 @@ mutateLink organism
         newGene <- reassignGeneWeight $ Gene newLink 0.0 True innovationID
         return (organism {genome = newGene : genome organism})
 
-mutateOrganism :: Mutation Organism
-mutateOrganism organism
+mutate :: Mutation Organism
+mutate organism
   = do
-    let genomeMutation
-          = (chanceMutation 0.8 mutateWeights >=> chanceMutation 0.1 reenableGenes)
-        organismMutation
-          = (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode)
-    genome' <- genomeMutation $ genome organism
+    genome' <- mutateGenome $ genome organism
     let organism' = organism {genome = genome'}
-    organismMutation organism'
+    (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode) organism'

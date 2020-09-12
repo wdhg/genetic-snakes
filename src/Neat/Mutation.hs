@@ -2,7 +2,7 @@ module Neat.Mutation
   ( mutateNode
   , mutateLink
   , mutateWeights
-  , mutateOrganism
+  , mutate
   ) where
 
 import Neat.Mutation.Base
