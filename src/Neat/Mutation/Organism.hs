@@ -49,22 +49,24 @@ pickRandomGene organism
 
 mutateNode :: Mutation Organism
 mutateNode organism
-  = do
-    sim <- get
-    index <- pickRandomGene organism
-    let newNode           = Hidden $ hidden organism
-        gene              = setEnabledTo False $ genome organism !! index
-        (inNode, outNode) = link gene
-        linkIn            = (inNode, newNode)
-        linkOut           = (newNode, outNode)
-    innovationIn  <- getInnovationID linkIn
-    innovationOut <- getInnovationID linkOut
-    let geneIn  = Gene linkIn 1.0 True innovationIn
-        geneOut = Gene linkOut (weight gene) True innovationOut
-    return $ organism
-      { genome = geneOut : geneIn : (replaceAt index gene $ genome organism)
-      , hidden = hidden organism + 1
-      }
+  = case genome organism of
+      [] -> return organism
+      _  -> do
+        sim <- get
+        index <- pickRandomGene organism
+        let newNode           = Hidden $ hidden organism
+            gene              = setEnabledTo False $ genome organism !! index
+            (inNode, outNode) = link gene
+            linkIn            = (inNode, newNode)
+            linkOut           = (newNode, outNode)
+        innovationIn  <- getInnovationID linkIn
+        innovationOut <- getInnovationID linkOut
+        let geneIn  = Gene linkIn 1.0 True innovationIn
+            geneOut = Gene linkOut (weight gene) True innovationOut
+        return $ organism
+          { genome = geneOut : geneIn : (replaceAt index gene $ genome organism)
+          , hidden = hidden organism + 1
+          }
 
 mutateLink :: Mutation Organism
 mutateLink organism

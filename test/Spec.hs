@@ -1,2 +1,8 @@
-main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+import qualified NeatTests
+import           Test.HUnit
+
+main :: IO (Counts)
+main
+  = runTestTT $ TestList
+    [ NeatTests.tests
+    ]
