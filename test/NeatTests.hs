@@ -11,6 +11,25 @@ testState
     [ (Input 0, Output 0)
     , (Input 0, Hidden 0)
     , (Hidden 0, Output 0)
+    , (Input 0, Hidden 1)
+    ]
+
+latestInnovation :: Int
+latestInnovation
+  = (length $ innovations testState) - 1
+
+testOrganisms :: [Organism]
+testOrganisms
+  = [ Organism [] 1 1 0
+    , Organism [Gene (Input 0, Output 0) 0.5 True 0] 1 1 0
+    , Organism [Gene (Hidden 0, Output 0) 0.5 True 2] 0 1 1
+    , Organism
+      [ Gene (Input 0, Output 0) 0.5 True 0
+      , Gene (Input 0, Hidden 0) 0.3 True 1
+      ] 1 1 1
+    , Organism
+      [ Gene (Input 0, Output 0) 0.5 True 0
+      ] 1 2 0
     ]
 
 testEqual :: (Eq a, Show a) => String -> a -> a -> Test
@@ -20,6 +39,12 @@ testEqual msg expected actual
 testBool :: String -> Bool -> Test
 testBool msg result
   = TestCase $ assertBool msg result
+
+getGene :: Link -> Organism -> Gene
+getGene link' organism
+  = case filter (\g -> link g == link') $ genome organism of
+      [gene] -> gene
+      _      -> error $ "Gene with link " ++ show link' ++ " not found"
 
 mutateNodeTests :: Test
 mutateNodeTests
@@ -44,27 +69,42 @@ mutateNodeTests
         innovationID $ getGene (Hidden 0, Output 0) $ fst $ results !! 1
     , testBool "1 gene -> Old gene is disabled" $
         not $ enabled $ last $ genome $ fst $ results !! 1
-    , testEqual "2 genes -> Gene in has correct innovationID" 3 $
+    , testEqual "2 genes -> Gene in has correct innovationID" (latestInnovation + 1) $
         innovationID $ getGene (Hidden 0, Hidden 1) $ fst $ results !! 2
-    , testEqual "2 genes -> Gene out has correct innovationID" 4 $
+    , testEqual "2 genes -> Gene out has correct innovationID" (latestInnovation + 2) $
         innovationID $ getGene (Hidden 1, Output 0) $ fst $ results !! 2
     ]
       where
-        getGene :: Link -> Organism -> Gene
-        getGene link' organism
-          = case filter (\g -> link g == link') $ genome organism of
-              [gene] -> gene
-              _      -> error $ "Gene with link " ++ show link' ++ " not found"
         results :: [(Organism, SimulationState)]
         results
-          = map (\organism -> runState (mutateNode organism) testState)
-            [ Organism [] 1 1 0
-            , Organism [Gene (Input 0, Output 0) 0.5 True 0] 1 1 0
-            , Organism [Gene (Hidden 0, Output 0) 0.5 True 1] 0 1 1
-            ]
+          = map (\o -> runState (mutateNode o) testState) testOrganisms
+
+mutateLinkTests :: Test
+mutateLinkTests
+  = TestList
+    [ testEqual "No genes -> 1 new gene" 1 $
+        length $ genome $ fst $ results !! 0
+    , testBool "No genes -> Gene with correct input and output" $
+        (Input 0, Output 0) `elem` (map link $ genome $ fst $ results !! 0)
+    , testEqual "All genes taken -> No new genes" 1 $
+        length $ genome $ fst $ results !! 1
+    , testEqual "All genes taken -> No new innovations" (innovations testState) $
+        innovations $ snd $ results !! 1
+    , testEqual "New gene -> Correct innovationID" 2 $
+        innovationID $ getGene (Hidden 0, Output 0) $ fst $ results !! 3
+    , testEqual "New gene -> No new nodes" 0 $
+        hidden $ fst $ results !! 0
+    , testEqual "New innovation -> Correct innovationID" (latestInnovation + 1) $
+        innovationID $ getGene (Input 0, Output 1) $ fst $ results !! 4
+    ]
+      where
+        results :: [(Organism, SimulationState)]
+        results
+          = map (\o -> runState (mutateLink o) testState) testOrganisms
 
 tests :: Test
 tests
   = TestList
     [ "mutateNodes" ~: mutateNodeTests
+    , "mutateLink" ~: mutateLinkTests
     ]

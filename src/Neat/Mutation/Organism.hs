@@ -13,9 +13,9 @@ getIncommingNodes organism outputNode
             $ genome organism
      in incomming ++ (concatMap (getIncommingNodes organism) incomming)
 
-isCyclic :: Organism -> Link -> Bool
-isCyclic organism (inNode, outNode)
-  = outNode `elem` (getIncommingNodes organism inNode)
+isNotCyclic :: Organism -> Link -> Bool
+isNotCyclic organism (inNode, outNode)
+  = inNode /= outNode && outNode `notElem` (getIncommingNodes organism inNode)
 
 genValidLinks :: Organism -> [Link]
 genValidLinks organism
@@ -26,7 +26,7 @@ genValidLinks organism
           = [(linkIn, linkOut) | linkIn <- linkInputs, linkOut <- linkOutputs]
         existingLinks
           = map link $ genome organism
-     in filter (\l -> (not $ isCyclic organism l) && (l `notElem` existingLinks)) allLinks
+     in filter (\l -> (isNotCyclic organism l) && (l `notElem` existingLinks)) allLinks
 
 getInnovationID :: Link -> State SimulationState Int
 getInnovationID link
