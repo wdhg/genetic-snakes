@@ -9,17 +9,15 @@ reenableGene
 
 perturbGeneWeight :: Mutation Gene
 perturbGeneWeight gene
-  = state $ \sim ->
-      let maxPerturbAmount = 0.2
-          (offset, gen')
-            = randomR (-maxPerturbAmount, maxPerturbAmount) (gen sim)
-       in (gene {weight = weight gene + offset}, sim {gen = gen'})
+  = do
+      offset <- randomRState (-0.2, 0.2)
+      return (gene {weight = weight gene + offset})
 
 reassignGeneWeight :: Mutation Gene
 reassignGeneWeight gene
-  = state $ \sim ->
-      let (weight', gen') = randomR (0, 1) (gen sim)
-       in (gene {weight = weight'}, sim {gen = gen'})
+  = do
+      weight' <- randomRState (-2.0, 2.0)
+      return (gene {weight = weight'})
 
 mutateWeight :: Mutation Gene
 mutateWeight

@@ -5,6 +5,7 @@ module Neat.Base
   , Genome
   , Organism(..)
   , SimulationState(..)
+  , randomRState
   , module Control.Monad.State
   , module System.Random
   ) where
@@ -56,3 +57,11 @@ data SimulationState
     , innovations :: [Link]
     }
     deriving (Show)
+
+randomRState :: Random a => (a, a) -> State SimulationState a
+randomRState range
+  = do
+      sim <- get
+      let (value, gen') = randomR range $ gen sim
+      put (sim {gen = gen'})
+      return value

@@ -42,8 +42,7 @@ pickRandomGene organism
   = do
     sim <- get
     let geneCount     = length $ genome organism
-        (index, gen') = randomR (0, geneCount - 1) $ gen sim
-    put (sim {gen = gen'})
+    index <- randomRState (0, geneCount - 1)
     return index
 
 mutateNode :: Mutation Organism
@@ -74,9 +73,8 @@ mutateLink organism
     case genValidLinks organism of
       []          -> return organism
       validLinks  -> do
-        let (index, gen') = randomR (0, length validLinks - 1) $ gen sim
-            newLink       = validLinks !! index
-        put (sim {gen = gen'})
+        index <- randomRState (0, length validLinks - 1)
+        let newLink       = validLinks !! index
         innovationID <- getInnovationID newLink
         newGene <- reassignGeneWeight $ Gene newLink 0.0 True innovationID
         return (organism {genome = newGene : genome organism})

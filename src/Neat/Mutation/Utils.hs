@@ -26,8 +26,7 @@ chanceMutations :: Chance -> Mutation m -> Mutation m -> Mutation m
 chanceMutations chance mutationThen mutationElse mutable
   = do
     sim <- get
-    let (value, gen') = randomR (0, 1) (gen sim) :: (Float, StdGen)
-    put (sim {gen = gen'})
+    value <- randomRState (0, 1)
     if value <= chance
        then mutationThen mutable
        else mutationElse mutable
