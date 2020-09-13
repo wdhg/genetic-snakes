@@ -1,6 +1,4 @@
-module Neat.Breeding
-  (
-  ) where
+module Neat.Breeding where
 
 import Neat.Base
 
@@ -10,6 +8,6 @@ alignGenes genome1 []
 alignGenes [] genome2
   = map (\gene -> (Nothing, Just gene)) genome2
 alignGenes genome1@(gene1:genome1') genome2@(gene2:genome2')
-  | gene1 < gene2 = (Just gene1, Nothing) : alignGenes genome1' genome2
-  | gene1 > gene2 = (Nothing, Just gene2) : alignGenes genome1 genome2'
+  | gene1 > gene2 = (Just gene1, Nothing) : alignGenes genome1' genome2
+  | gene1 < gene2 = (Nothing, Just gene2) : alignGenes genome1 genome2'
   | otherwise     = (Just gene1, Just gene2) : alignGenes genome1' genome2'

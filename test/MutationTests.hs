@@ -1,4 +1,4 @@
-module NeatTests (tests) where
+module MutationTests (tests) where
 
 import Control.Monad.State
 import Neat
