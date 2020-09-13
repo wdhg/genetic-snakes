@@ -83,14 +83,14 @@ mutateLink organism
 mutateWeights :: Mutation Organism
 mutateWeights organism
   = do
-      genome' <- mapM mutateWeight $ genome organism
-      return (organism {genome = genome'})
+    genome' <- mapM mutateWeight $ genome organism
+    return (organism {genome = genome'})
 
 mutateReenableGenes :: Mutation Organism
 mutateReenableGenes organism
   = do
-      genome' <- mapM reenableGene $ genome organism
-      return (organism {genome = genome'})
+    genome' <- mapM reenableGene $ genome organism
+    return (organism {genome = genome'})
 
 mutate :: Mutation Organism
 mutate

@@ -10,14 +10,14 @@ reenableGene
 perturbGeneWeight :: Mutation Gene
 perturbGeneWeight gene
   = do
-      offset <- randomRState (-0.2, 0.2)
-      return (gene {weight = weight gene + offset})
+    offset <- randomRState (-0.2, 0.2)
+    return (gene {weight = weight gene + offset})
 
 reassignGeneWeight :: Mutation Gene
 reassignGeneWeight gene
   = do
-      weight' <- randomRState (-2.0, 2.0)
-      return (gene {weight = weight'})
+    weight' <- randomRState (-2.0, 2.0)
+    return (gene {weight = weight'})
 
 mutateWeight :: Mutation Gene
 mutateWeight
