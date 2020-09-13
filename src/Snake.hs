@@ -1,4 +1,11 @@
-module Snake where
+module Snake
+  ( up
+  , down
+  , left
+  , right
+  , update
+  , newGame
+  ) where
 
 import Control.Monad.State
 import System.Random
@@ -17,84 +24,130 @@ type Snake
 
 data SnakeGame
   = SnakeGame
-    { snake  :: Snake
-    , bounds :: Vector
-    , food   :: Vector
-    , stdGen :: StdGen
+    { snake    :: Snake
+    , bounds   :: Vector
+    , food     :: Vector
+    , gen      :: StdGen
+    , finished :: Bool
     }
+      deriving (Show)
 
-instance Show SnakeGame where
-  show game@(SnakeGame snake (width, height) food _)
-    = top ++ concatMap showRow [0..height - 1] ++ bot
-      where
+type Predicate
+  = StateT SnakeGame IO Bool
+
+type Action
+  = StateT SnakeGame IO ()
+
+printGame :: SnakeGame -> IO ()
+printGame game
+  = do
+    let (width, height) = bounds game
         bar = concat $ replicate width "━━"
-        top = "\n┏━" ++ bar ++ "━┓"
-        bot = "\n┗━" ++ bar ++ "━┛\n"
-        showRow :: Int -> String
+        showCell cell
+          | cell == (head $ snake game) = "██"
+          | cell `elem` (snake game)    = "▓▓"
+          | cell == (food game)         = "▒▒"
+          | otherwise                   = "  "
         showRow y
           = "\n┃ " ++ concatMap (\x -> showCell (x,y)) [0..width - 1] ++ " ┃"
-        showCell :: Vector -> String
-        showCell cell
-          | cell == head snake = "██"
-          | cell `elem` snake  = "▓▓"
-          | cell == food       = "▒▒"
-          | otherwise          = "  "
+    putStr $ "\n┏━" ++ bar ++ "━┓"
+    mapM_ (putStr . showRow) [0..height - 1]
+    putStr $ "\n┗━" ++ bar ++ "━┛\n"
+
+(?) :: Predicate -> Action -> Action
+predicate ? action
+  = do
+    result <- predicate
+    if result
+       then action
+       else state $ \s -> ((), s)
 
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
   = (x1 + x2, y1 + y2)
 
-extend :: Monad m => Vector -> StateT SnakeGame m ()
+notFinished :: Predicate
+notFinished
+  = state $ \s -> (not $ finished s, s)
+
+outOfBounds :: Predicate
+outOfBounds
+  = do
+    currentGame <- get
+    let (x, y) = head $ snake currentGame
+        (maxX, maxY) = bounds currentGame
+    return $ x < 0 || y < 0 || x >= maxX || y >= maxY
+
+eatenSelf :: Predicate
+eatenSelf
+  = do
+    currentGame <- get
+    let body = snake currentGame
+    return $ head body `elem` tail body
+
+eatenFood :: Predicate
+eatenFood
+  = do
+    currentGame <- get
+    return $ (head $ snake $ currentGame) == (food currentGame)
+
+spawnFood :: Action
+spawnFood
+  = do
+    currentGame <- get
+    let (maxX, maxY) = bounds currentGame
+        freeCells
+          = [ (x, y)
+              | x <- [0..maxX - 1]
+              , y <- [0..maxY - 1]
+              , (x, y) `notElem` (snake currentGame)
+            ]
+        (index, gen') = randomR (0, length freeCells - 1) $ gen currentGame
+    case freeCells of
+      [] -> finishGame -- no free cells left
+      _  -> put (currentGame
+              { food = freeCells !! index
+              , gen  = gen'
+              })
+
+extend :: Vector -> Action
 extend direction
   = do
     currentGame <- get
     let currentSnake = snake currentGame
+        newHead = add direction (head currentSnake)
     put (currentGame
-      { snake = add direction (head currentSnake) : currentSnake
+      { snake = newHead : currentSnake
       })
 
-eatFood :: Vector -> StateT SnakeGame IO ()
-eatFood direction
-  = do
-    extend direction
-    currentGame <- get
-    let (maxX, maxY) = bounds currentGame
-        cells = [(x, y) | x <- [0..maxX - 1], y <- [0..maxY - 1]]
-        choices = filter (`notElem` (snake currentGame)) cells
-        (index, gen') = randomR (0, length choices - 1) $ stdGen currentGame
-    put (currentGame
-      { food = choices !! index
-      , stdGen = gen'
-      })
+shrinkTail :: Action
+shrinkTail
+  = state $ \currentGame -> ((), currentGame {snake = init $ snake currentGame})
 
-move :: Monad m => Vector -> StateT SnakeGame m ()
-move direction
-  = do
-    currentGame <- get
-    let currentSnake = snake currentGame
-    put (currentGame
-      { snake = add direction (head currentSnake) : (init currentSnake)
-      })
+finishGame :: Action
+finishGame
+  = state $ \currentGame -> ((), currentGame {finished = True})
 
-outOfBounds :: Vector -> Vector -> Bool
-outOfBounds (maxX, maxY) (x, y)
-  = x < 0 || y < 0 || x >= maxX || y >= maxY
-
-update :: Vector -> StateT SnakeGame IO ()
+update :: Vector -> Action
 update direction
-  = do
-    currentGame <- get
-    let currentBody = tail $ snake currentGame
-    case add direction (head $ snake currentGame) of
-      newHead
-        | outOfBounds (bounds currentGame) newHead
-          || newHead `elem` currentBody            -> return ()
-        | newHead == (food currentGame)            -> eatFood direction
-        | otherwise                                -> move direction
+  = notFinished ? do
+      extend direction
+      hasEatenFood <- eatenFood
+      if hasEatenFood
+         then spawnFood
+         else shrinkTail
+      outOfBounds ? finishGame
+      eatenSelf ? finishGame
 
 newGame :: Int -> Int -> Int -> SnakeGame
 newGame width height seed
-  | width > 1 && height > 1 = let gen = mkStdGen seed
-                                  center = (width `div` 2, height `div` 2)
-                              in SnakeGame [(0,0)] (width, height) center gen
-  | otherwise = error "Cannot have map with dimensions <= 1"
+  | width <= 1 || height <= 1
+    = error "Cannot have map with dimensions <= 1"
+  | otherwise
+    = SnakeGame
+      { snake    = [(0,0)]
+      , bounds   = (width, height)
+      , food     = (width `div` 2, height `div` 2)
+      , gen      = mkStdGen seed
+      , finished = False
+      }
