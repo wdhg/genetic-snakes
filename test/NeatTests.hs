@@ -102,9 +102,25 @@ mutateLinkTests
         results
           = map (\o -> runState (mutateLink o) testState) testOrganisms
 
+mutateWeightsTests :: Test
+mutateWeightsTests
+  = TestList
+    [ testEqual "No genes -> No changes" [] $
+        fst $ results !! 0
+    , testBool "Some gene -> Weights are altered" $
+        and $ zipWith (/=)
+          (map weight $ genome $ testOrganisms !! 3)
+          (map weight $ fst $ results !! 3)
+    ]
+      where
+        results :: [(Genome , SimulationState)]
+        results
+          = map (\g -> runState (mutateWeights g) testState) $ map genome testOrganisms
+
 tests :: Test
 tests
   = TestList
     [ "mutateNodes" ~: mutateNodeTests
     , "mutateLink" ~: mutateLinkTests
+    , "mutateWeights" ~: mutateWeightsTests
     ]
