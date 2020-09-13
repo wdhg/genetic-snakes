@@ -1,8 +1,7 @@
 module Neat.Mutation.Organism where
 
 import Neat.Mutation.Base
-import Neat.Mutation.Gene   (reassignGeneWeight)
-import Neat.Mutation.Genome
+import Neat.Mutation.Gene
 import Neat.Mutation.Utils
 
 getIncommingNodes :: Organism -> Node -> [Node]
@@ -82,9 +81,22 @@ mutateLink organism
         newGene <- reassignGeneWeight $ Gene newLink 0.0 True innovationID
         return (organism {genome = newGene : genome organism})
 
-mutate :: Mutation Organism
-mutate organism
+
+mutateWeights :: Mutation Organism
+mutateWeights organism
   = do
-    genome' <- mutateGenome $ genome organism
-    let organism' = organism {genome = genome'}
-    (chanceMutation 0.03 mutateNode >=> chanceMutation 0.05 mutateNode) organism'
+      genome' <- mapM mutateWeight $ genome organism
+      return (organism {genome = genome'})
+
+mutateReenableGenes :: Mutation Organism
+mutateReenableGenes organism
+  = do
+      genome' <- mapM reenableGene $ genome organism
+      return (organism {genome = genome'})
+
+mutate :: Mutation Organism
+mutate
+  = chanceMutation 0.8 mutateWeights >=>
+    chanceMutation 0.1 mutateReenableGenes >=>
+    chanceMutation 0.03 mutateNode >=>
+    chanceMutation 0.05 mutateNode

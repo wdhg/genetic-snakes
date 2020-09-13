@@ -28,7 +28,6 @@ library
       Neat.Mutation
       Neat.Mutation.Base
       Neat.Mutation.Gene
-      Neat.Mutation.Genome
       Neat.Mutation.Organism
       Neat.Mutation.Utils
       Snake

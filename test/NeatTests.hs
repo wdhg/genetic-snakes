@@ -2,6 +2,7 @@ module NeatTests (tests) where
 
 import Control.Monad.State
 import Neat
+import Neat.Mutation.Base
 import System.Random
 import Test.HUnit
 
@@ -30,7 +31,12 @@ testOrganisms
     , Organism
       [ Gene (Input 0, Output 0) 0.5 True 0
       ] 1 2 0
+    , Organism [Gene (Input 0, Output 0) 0.5 False 0] 1 1 0
     ]
+
+produceResults :: Mutation Organism -> [(Organism, SimulationState)]
+produceResults mutation
+  = map (\o -> runState (mutation o) testState) testOrganisms
 
 testEqual :: (Eq a, Show a) => String -> a -> a -> Test
 testEqual msg expected actual
@@ -75,9 +81,7 @@ mutateNodeTests
         innovationID $ getGene (Hidden 1, Output 0) $ fst $ results !! 2
     ]
       where
-        results :: [(Organism, SimulationState)]
-        results
-          = map (\o -> runState (mutateNode o) testState) testOrganisms
+        results = produceResults mutateNode
 
 mutateLinkTests :: Test
 mutateLinkTests
@@ -98,24 +102,31 @@ mutateLinkTests
         innovationID $ getGene (Input 0, Output 1) $ fst $ results !! 4
     ]
       where
-        results :: [(Organism, SimulationState)]
-        results
-          = map (\o -> runState (mutateLink o) testState) testOrganisms
+        results = produceResults mutateLink
 
 mutateWeightsTests :: Test
 mutateWeightsTests
   = TestList
     [ testEqual "No genes -> No changes" [] $
-        fst $ results !! 0
+        genome $ fst $ results !! 0
     , testBool "Some gene -> Weights are altered" $
         and $ zipWith (/=)
           (map weight $ genome $ testOrganisms !! 3)
-          (map weight $ fst $ results !! 3)
+          (map weight $ genome $ fst $ results !! 3)
     ]
       where
-        results :: [(Genome , SimulationState)]
-        results
-          = map (\g -> runState (mutateWeights g) testState) $ map genome testOrganisms
+        results = produceResults mutateWeights
+
+mutateReenableGenesTests :: Test
+mutateReenableGenesTests
+  = TestList
+    [ testEqual "No genes -> No changes" [] $
+        genome $ fst $ results !! 0
+    , testBool "Disabled gene -> Gene reenabled" $
+        enabled $ getGene (Input 0, Output 0) $ fst $ results !! 5
+    ]
+      where
+        results = produceResults mutateReenableGenes
 
 tests :: Test
 tests
@@ -123,4 +134,5 @@ tests
     [ "mutateNodes" ~: mutateNodeTests
     , "mutateLink" ~: mutateLinkTests
     , "mutateWeights" ~: mutateWeightsTests
+    , "mutateReenableGenes" ~: mutateReenableGenesTests
     ]
