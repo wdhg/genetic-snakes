@@ -5,6 +5,8 @@ module Snake
   , right
   , update
   , newGame
+  , Vector
+  , GameState(..)
   ) where
 
 import Control.Monad.State
@@ -25,6 +27,7 @@ type Snake
 data GameState
   = GameState
     { snake    :: Snake
+    , snakeDir :: Vector
     , bounds   :: Vector
     , food     :: Vector
     , gen      :: StdGen
@@ -33,10 +36,10 @@ data GameState
       deriving (Show)
 
 type Predicate
-  = StateT GameState IO Bool
+  = State GameState Bool
 
 type Action
-  = StateT GameState IO ()
+  = State GameState ()
 
 printGame :: GameState -> IO ()
 printGame game
@@ -110,12 +113,28 @@ spawnFood
               , gen  = gen'
               })
 
-extend :: Vector -> Action
-extend direction
+validDirection :: Vector -> Predicate
+validDirection direction
   = do
     game <- get
+    let oldDirection = snakeDir game
+    return $ (length $ snake game) == 1 || (and $ map not
+      [ direction == up && oldDirection == down
+      , direction == down && oldDirection == up
+      , direction == left && oldDirection == right
+      , direction == right && oldDirection == left
+      ])
+
+move :: Vector -> Action
+move direction
+  = do
+    game <- get
+    isValidDirection <- validDirection direction
     let currentSnake = snake game
-        newHead = add direction (head currentSnake)
+        direction'
+          | isValidDirection = direction
+          | otherwise        = snakeDir game
+        newHead = add direction' (head currentSnake)
     put (game
       { snake = newHead : currentSnake
       })
@@ -131,7 +150,7 @@ finishGame
 update :: Vector -> Action
 update direction
   = notFinished ? do
-      extend direction
+      move direction
       hasEatenFood <- eatenFood
       if hasEatenFood
          then spawnFood
@@ -146,6 +165,7 @@ newGame width height seed
   | otherwise
     = GameState
       { snake    = [(0,0)]
+      , snakeDir = right
       , bounds   = (width, height)
       , food     = (width `div` 2, height `div` 2)
       , gen      = mkStdGen seed

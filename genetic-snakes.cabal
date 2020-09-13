@@ -62,6 +62,8 @@ test-suite genetic-snakes-test
   main-is: Spec.hs
   other-modules:
       NeatTests
+      SnakeTests
+      Utils
       Paths_genetic_snakes
   hs-source-dirs:
       test

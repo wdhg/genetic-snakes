@@ -5,6 +5,7 @@ import Neat
 import Neat.Mutation.Base
 import System.Random
 import Test.HUnit
+import Utils
 
 testState :: SimulationState
 testState
@@ -37,14 +38,6 @@ testOrganisms
 produceResults :: Mutation Organism -> [(Organism, SimulationState)]
 produceResults mutation
   = map (\o -> runState (mutation o) testState) testOrganisms
-
-testEqual :: (Eq a, Show a) => String -> a -> a -> Test
-testEqual msg expected actual
-  = TestCase $ assertEqual msg expected actual
-
-testBool :: String -> Bool -> Test
-testBool msg result
-  = TestCase $ assertBool msg result
 
 getGene :: Link -> Organism -> Gene
 getGene link' organism
