@@ -61,9 +61,7 @@ printGame game
 predicate ? action
   = do
     result <- predicate
-    if result
-       then action
-       else state $ \s -> ((), s)
+    when result action
 
 add :: Vector -> Vector -> Vector
 add (x1, y1) (x2, y2)
