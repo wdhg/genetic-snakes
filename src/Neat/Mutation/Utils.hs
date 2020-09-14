@@ -33,4 +33,4 @@ chanceMutations chance mutationThen mutationElse mutable
 
 chanceMutation :: Chance -> Mutation m -> Mutation m
 chanceMutation chance mutationThen
-  = chanceMutations chance mutationThen (\m -> state $ \s -> (m, s))
+  = chanceMutations chance mutationThen pure
