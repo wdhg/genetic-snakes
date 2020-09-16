@@ -53,7 +53,7 @@ test-suite genetic-snakes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      SnakeTests
+      SnakeSpec
       Paths_genetic_snakes
   hs-source-dirs:
       test
