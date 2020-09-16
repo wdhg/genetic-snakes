@@ -57,9 +57,8 @@ getEmptyCells game
 spawnFood :: RandomGen g => Game -> Rand g Game
 spawnFood game
   = do
-    let emptyCells = getEmptyCells game
-    index <- getRandomR (0, length emptyCells - 1)
-    return $ game {food = emptyCells !! index}
+    food' <- uniform $ getEmptyCells game
+    return $ game {food = food'}
 
 setDirection :: Vector -> Snake -> Snake
 setDirection dir snake'
