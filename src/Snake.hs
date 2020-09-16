@@ -1,5 +1,7 @@
 module Snake where
 
+import Control.Monad.Random
+
 type Vector
   = (Int, Int)
 
@@ -28,10 +30,30 @@ add :: Vector -> Vector -> Vector
 add (x0, y0) (x1, y1)
   = (x0 + x1, y0 + y1)
 
-move :: Snake -> Snake
-move snake'
+extendHead :: Snake -> Snake
+extendHead snake'
   = let newHead = add (head $ body snake') $ direction snake'
-     in snake' {body = newHead : (init $ body snake')}
+     in snake' {body = newHead : body snake'}
+
+shrinkTail :: Snake -> Snake
+shrinkTail snake'
+  = snake' {body = init $ body snake'}
+
+getEmptyCells :: Game -> [Vector]
+getEmptyCells game
+  = [(x,y)
+    | x <- [0..maxX-1]
+    , y <- [0..maxY-1]
+    , (x,y) `notElem` (body $ snake game)]
+      where
+        (maxX, maxY) = bounds game
+
+spawnFood :: RandomGen g => Game -> Rand g Game
+spawnFood game
+  = do
+    let emptyCells = getEmptyCells game
+    index <- getRandomR (0, length emptyCells - 1)
+    return $ game {food = emptyCells !! index}
 
 setDirection :: Vector -> Snake -> Snake
 setDirection dir snake'
@@ -40,6 +62,11 @@ setDirection dir snake'
   | otherwise
     = snake' {direction = dir}
 
-update :: Vector -> Game -> Game
+update :: RandomGen g => Vector -> Game -> Rand g Game
 update dir game
-  = game {snake = move $ setDirection dir $ snake game}
+  | (head $ body snake') == food game
+    = spawnFood game {snake = snake'}
+  | otherwise
+    = return game {snake = shrinkTail snake'}
+      where
+        snake' = extendHead $ setDirection dir $ snake game
