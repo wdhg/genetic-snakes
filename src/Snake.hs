@@ -57,8 +57,10 @@ getEmptyCells game
 spawnFood :: RandomGen g => Game -> Rand g Game
 spawnFood game
   = do
-    food' <- uniform $ getEmptyCells game
-    return $ game {food = food'}
+    maybeCell <- uniformMay $ getEmptyCells game
+    case maybeCell of
+      Nothing   -> return game
+      Just cell -> return $ game {food = cell}
 
 setDirection :: Vector -> Snake -> Snake
 setDirection dir snake'
