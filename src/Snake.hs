@@ -5,6 +5,12 @@ import Control.Monad.Random
 type Vector
   = (Int, Int)
 
+data GameState
+  = Won
+  | Lost
+  | Unfinished
+    deriving (Show, Eq)
+
 up, down, left, right :: Vector
 up    = (0,-1)
 down  = (0,1)
@@ -61,6 +67,18 @@ setDirection dir snake'
     = snake' -- can't move back on self
   | otherwise
     = snake' {direction = dir}
+
+hasLost :: Game -> Bool
+hasLost game
+  = let (snakeHead@(x,y) : snakeTail) = body $ snake game
+        (maxX, maxY) = bounds game
+     in snakeHead `elem` snakeTail || x < 0 || y < 0 || x >= maxX || y >= maxY
+
+getGameState :: Game -> GameState
+getGameState game
+  | hasLost game             = Lost
+  | getEmptyCells game == [] = Won
+  | otherwise                = Unfinished
 
 update :: RandomGen g => Vector -> Game -> Rand g Game
 update dir game
