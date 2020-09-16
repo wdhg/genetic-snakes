@@ -23,3 +23,7 @@ data SnakeGame
     , food   :: Vector
     }
     deriving (Show)
+
+add :: Vector -> Vector -> Vector
+add (x0, y0) (x1, y1)
+  = (x0 + x1, y0 + y1)
