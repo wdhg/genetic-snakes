@@ -53,15 +53,15 @@ selectAndDisableRandomGene genome
         genome' = genome {genes = before ++ [disable gene] ++ after}
     return (gene, genome')
 
-mutateNode :: MonadRandom m => Genome -> StateT Innovations m Genome
-mutateNode genome
+mutateNode :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
+mutateNode genome innovations
   = do
     (gene, genome') <- selectAndDisableRandomGene genome
     let (Link inNode outNode) = link gene
         (hiddenNode, genome'') = addHiddenNode genome'
         addInGene = addLink (Link inNode hiddenNode) 1.0
         addOutGene = addLink (Link hiddenNode outNode) (weight gene)
-    (addInGene >=> addOutGene) genome''
+    runStateT (addInGene genome'' >>= addOutGene) innovations
 
 getIncommingNodes :: Genome -> NodeID -> [NodeID]
 getIncommingNodes genome node
@@ -88,12 +88,12 @@ addRandomLink link genome
     weight <- getRandomR (-2.0, 2.0)
     addLink link weight genome
 
-mutateLink :: MonadRandom m => Genome -> StateT Innovations m Genome
-mutateLink genome
+mutateLink :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
+mutateLink genome innovations
   = do
     maybeLink <- uniformMay $ getUnlinked genome
     case maybeLink of
-      Nothing -> return genome -- genome is fully connected already
+      Nothing -> return (genome, innovations) -- genome is fully connected already
       Just link -> do
         weight <- getRandomR (-2.0, 2.0)
-        addLink link weight genome
+        runStateT (addLink link weight genome) innovations

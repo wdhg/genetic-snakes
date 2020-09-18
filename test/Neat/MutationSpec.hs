@@ -28,12 +28,14 @@ spec
 
     describe "mutateNode" $ do
       it "should replace a gene with two new genes" $ do
-        let result = evalRand (evalStateT (mutateNode genome1) [(Link (NodeID 0) (NodeID 1), InnovationID 0)]) (mkStdGen 0)
-        result `shouldBe` genome0
+        let (resultGenome, resultInnovations)
+              = evalRand (mutateNode genome1 [(Link (NodeID 0) (NodeID 1), InnovationID 0)]) (mkStdGen 0)
+        resultGenome `shouldBe` genome0
 
     describe "mutateLink" $ do
       it "should create a new link random between unlinked nodes" $ do
-        let result = evalRand (evalStateT (mutateLink genome2) [(Link (NodeID 2) (NodeID 1), InnovationID 0) ]) (mkStdGen 0)
-        (length $ genes result) `shouldBe` 1
-        (innovationID $ head $ genes result) `shouldBe` (InnovationID 1)
-        (link $ head $ genes result) `shouldBe` (Link (NodeID 0) (NodeID 1))
+        let (resultGenome, resultInnovations)
+              = evalRand (mutateLink genome2 [(Link (NodeID 2) (NodeID 1), InnovationID 0) ]) (mkStdGen 0)
+        (length $ genes resultGenome) `shouldBe` 1
+        (innovationID $ head $ genes resultGenome) `shouldBe` (InnovationID 1)
+        (link $ head $ genes resultGenome) `shouldBe` (Link (NodeID 0) (NodeID 1))
