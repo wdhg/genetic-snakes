@@ -23,6 +23,8 @@ source-repository head
 library
   exposed-modules:
       Neat
+      Neat.Base
+      Neat.Mutation
       Snake
   other-modules:
       Paths_genetic_snakes
@@ -56,7 +58,7 @@ test-suite genetic-snakes-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      NeatSpec
+      Neat.MutationSpec
       SnakeSpec
       Paths_genetic_snakes
   hs-source-dirs:

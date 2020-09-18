@@ -1,4 +1,4 @@
-module NeatSpec where
+module Neat.MutationSpec where
 
 import Control.Monad.Random
 import Control.Monad.State
