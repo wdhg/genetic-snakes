@@ -6,17 +6,17 @@ import Neat
 import Test.Hspec
 
 g0, g1, g2 :: Gene
-g0 = Gene (Link (NodeID 0) (NodeID 1)) 4.0 True (InnovationID 0)
-g1 = Gene (Link (NodeID 0) (NodeID 2)) 1.0 True (InnovationID 1)
-g2 = Gene (Link (NodeID 2) (NodeID 1)) 4.0 True (InnovationID 2)
+g0 = Gene (Link (Id 0) (Id 1)) 4.0 True (Id 0)
+g1 = Gene (Link (Id 0) (Id 2)) 1.0 True (Id 1)
+g2 = Gene (Link (Id 2) (Id 1)) 4.0 True (Id 2)
 
 genome0, genome1 :: Genome
 genome0
-  = Genome [g2, g1, g0 {enabled = False}] [NodeID 0] [NodeID 1] [NodeID 2]
+  = Genome [g2, g1, g0 {enabled = False}] [Id 0] [Id 1] [Id 2]
 genome1
-  = Genome [g0] [NodeID 0] [NodeID 1] []
+  = Genome [g0] [Id 0] [Id 1] []
 genome2
-  = Genome [] [NodeID 0] [] [NodeID 1]
+  = Genome [] [Id 0] [] [Id 1]
 
 spec :: Spec
 spec
@@ -29,13 +29,13 @@ spec
     describe "mutateNode" $ do
       it "should replace a gene with two new genes" $ do
         let (resultGenome, resultInnovations)
-              = evalRand (mutateNode genome1 [(Link (NodeID 0) (NodeID 1), InnovationID 0)]) (mkStdGen 0)
+              = evalRand (mutateNode genome1 [(Link (Id 0) (Id 1), Id 0)]) (mkStdGen 0)
         resultGenome `shouldBe` genome0
 
     describe "mutateLink" $ do
       it "should create a new link random between unlinked nodes" $ do
         let (resultGenome, resultInnovations)
-              = evalRand (mutateLink genome2 [(Link (NodeID 2) (NodeID 1), InnovationID 0) ]) (mkStdGen 0)
+              = evalRand (mutateLink genome2 [(Link (Id 2) (Id 1), Id 0) ]) (mkStdGen 0)
         (length $ genes resultGenome) `shouldBe` 1
-        (innovationID $ head $ genes resultGenome) `shouldBe` (InnovationID 1)
-        (link $ head $ genes resultGenome) `shouldBe` (Link (NodeID 0) (NodeID 1))
+        (innovationID $ head $ genes resultGenome) `shouldBe` (Id 1)
+        (link $ head $ genes resultGenome) `shouldBe` (Link (Id 0) (Id 1))

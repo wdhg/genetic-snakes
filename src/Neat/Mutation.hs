@@ -38,22 +38,22 @@ mutateWeights genome
     genes' <- mapM mutateWeight $ genes genome
     return genome {genes = genes'}
 
-addHiddenNode :: Genome -> (NodeID, Genome)
+addHiddenNode :: Genome -> (Id Node, Genome)
 addHiddenNode genome
   = case hidden genome of
       []    -> let nodeCount = (length $ inputs genome) + (length $ outputs genome)
-                in (NodeID nodeCount, genome {hidden = [NodeID nodeCount]})
+                in (Id nodeCount, genome {hidden = [Id nodeCount]})
       nodes -> (succ $ maximum nodes, genome)
 
-trackInnovation :: MonadRandom m => Link -> StateT Innovations m InnovationID
+trackInnovation :: MonadRandom m => Link -> StateT Innovations m (Id Innovation)
 trackInnovation link
   = do
     innovations <- get
-    let newInnovID = InnovationID $ length innovations
+    let newInnovID = Id $ length innovations
     put $ innovations ++ [(link, newInnovID)]
     return newInnovID
 
-getInnovationID :: MonadRandom m => Link -> StateT Innovations m InnovationID
+getInnovationID :: MonadRandom m => Link -> StateT Innovations m (Id Innovation)
 getInnovationID link
   = do
     innovations <- get
@@ -91,7 +91,7 @@ mutateNode genome innovations
         addOutGene = addLink (Link hiddenNode outNode) (weight gene)
     runStateT (addInGene genome'' >>= addOutGene) innovations
 
-getIncommingNodes :: Genome -> NodeID -> [NodeID]
+getIncommingNodes :: Genome -> Id Node -> [Id Node]
 getIncommingNodes genome node
   = let links = map link $ genes genome
         incommingLinks = filter (\l -> outNode l == node)

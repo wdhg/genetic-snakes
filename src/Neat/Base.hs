@@ -2,16 +2,16 @@
 
 module Neat.Base where
 
-newtype InnovationID
-  = InnovationID Int deriving (Show, Eq, Ord, Enum)
+data Node
+data Innovation
 
-newtype NodeID
-  = NodeID Int deriving (Show, Eq, Ord, Enum)
+newtype Id a
+  = Id Int deriving (Show, Eq, Ord, Enum)
 
 data Link
   = Link
-    { inNode  :: NodeID
-    , outNode :: NodeID
+    { inNode  :: Id Node
+    , outNode :: Id Node
     } deriving (Show, Eq)
 
 data Gene
@@ -19,9 +19,8 @@ data Gene
     { link         :: Link
     , weight       :: Float
     , enabled      :: Bool
-    , innovationID :: InnovationID
-    }
-    deriving (Show)
+    , innovationID :: Id Innovation
+    } deriving (Show)
 
 instance Eq Gene where
   gene0 == gene1
@@ -30,11 +29,10 @@ instance Eq Gene where
 data Genome
   = Genome
     { genes   :: [Gene]
-    , inputs  :: [NodeID]
-    , outputs :: [NodeID]
-    , hidden  :: [NodeID]
-    }
-    deriving (Show, Eq)
+    , inputs  :: [Id Node]
+    , outputs :: [Id Node]
+    , hidden  :: [Id Node]
+    } deriving (Show, Eq)
 
 type Innovations
-  = [(Link, InnovationID)]
+  = [(Link, Id Innovation)]
