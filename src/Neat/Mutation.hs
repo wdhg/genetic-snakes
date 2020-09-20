@@ -4,6 +4,10 @@ import Control.Monad.Random
 import Control.Monad.State
 import Neat.Base
 
+-- simple rename for clarity
+pick :: (Foldable t, MonadRandom m) => t a -> m (Maybe a)
+pick = uniformMay
+
 perturbWeight :: MonadRandom m => Gene -> m Gene
 perturbWeight gene
   = do
@@ -23,18 +27,24 @@ addHiddenNode genome
                 in (NodeID nodeCount, genome {hidden = [NodeID nodeCount]})
       nodes -> (succ $ maximum nodes, genome)
 
+trackInnovation :: MonadRandom m => Link -> StateT Innovations m InnovationID
+trackInnovation link
+  = do
+    innovations <- get
+    let newInnovID = InnovationID $ length innovations
+    put $ innovations ++ [(link, newInnovID)]
+    return newInnovID
+
 getInnovationID :: MonadRandom m => Link -> StateT Innovations m InnovationID
 getInnovationID link
   = do
     innovations <- get
     case lookup link innovations of
       Just innovID -> return innovID
-      Nothing -> do
-        let innovID = InnovationID $ length innovations
-        put $ innovations ++ [(link, innovID)]
-        return innovID
+      Nothing      -> trackInnovation link
 
-addLink :: MonadRandom m => Link -> Float -> Genome -> StateT Innovations m Genome
+addLink :: MonadRandom m =>
+  Link -> Float -> Genome -> StateT Innovations m Genome
 addLink link weight genome
   = do
     innovID <- getInnovationID link
@@ -65,8 +75,10 @@ mutateNode genome innovations
 
 getIncommingNodes :: Genome -> NodeID -> [NodeID]
 getIncommingNodes genome node
-  = let immediate = map inNode $ filter ((== node) . outNode ) $ map link $ genes genome
-     in immediate ++ concatMap (getIncommingNodes genome) immediate
+  = let links = map link $ genes genome
+        incommingLinks = filter (\l -> outNode l == node)
+        incommingNodes = map inNode links
+     in incommingNodes ++ concatMap (getIncommingNodes genome) incommingNodes
 
 isNotCyclic :: Genome -> Link -> Bool
 isNotCyclic genome (Link nodeIn nodeOut)
@@ -77,8 +89,8 @@ isValidLink genome link'
   = let existingLinks = map link $ genes genome
      in isNotCyclic genome link' && link' `notElem` existingLinks
 
-getUnlinked :: Genome -> [Link]
-getUnlinked genome
+getUnlinkedNodePairs :: Genome -> [Link]
+getUnlinkedNodePairs genome
   = let allLinks = zipWith Link (inputs genome ++ hidden genome) (outputs genome ++ hidden genome)
      in filter (isValidLink genome) allLinks
 
@@ -91,7 +103,7 @@ addRandomLink link genome
 mutateLink :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
 mutateLink genome innovations
   = do
-    maybeLink <- uniformMay $ getUnlinked genome
+    maybeLink <- pick $ getUnlinkedNodePairs genome
     case maybeLink of
       Nothing -> return (genome, innovations) -- genome is fully connected already
       Just link -> do
