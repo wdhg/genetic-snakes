@@ -21,9 +21,9 @@ genome2
 spec :: Spec
 spec
   = do
-    describe "perturbWeights" $ do
+    describe "mutateWeights" $ do
       it "should adjust weights of genes in genome" $ do
-        let result = evalRand (perturbWeights genome0) (mkStdGen 0)
+        let result = evalRand (mutateWeights genome0) (mkStdGen 0)
         map weight (genes result) `shouldNotBe` map weight (genes genome0)
 
     describe "mutateNode" $ do
