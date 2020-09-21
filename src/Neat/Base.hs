@@ -26,6 +26,10 @@ instance Eq Gene where
   gene0 == gene1
     = innovationID gene0 == innovationID gene1
 
+instance Ord Gene where
+  compare gene0 gene1
+    = compare (innovationID gene0) (innovationID gene1)
+
 data Genome
   = Genome
     { genes   :: [Gene]
