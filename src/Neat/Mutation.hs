@@ -41,11 +41,13 @@ mutateWeights genome
 addHiddenNode :: Genome -> (Id Node, Genome)
 addHiddenNode genome
   = case hidden genome of
-      []    -> let nodeCount = (length $ inputs genome) + (length $ outputs genome)
+      []    -> let inputCount = length $ inputs genome
+                   outputCount = length $ outputs genome
+                   nodeCount = inputCount + outputCount
                 in (Id nodeCount, genome {hidden = [Id nodeCount]})
       nodes -> (succ $ maximum nodes, genome)
 
-trackInnovation :: MonadRandom m => Link -> StateT Innovations m (Id Innovation)
+trackInnovation :: Monad m => Link -> StateT Innovations m (Id Innovation)
 trackInnovation link
   = do
     innovations <- get
@@ -53,7 +55,7 @@ trackInnovation link
     put $ innovations ++ [(link, newInnovID)]
     return newInnovID
 
-getInnovationID :: MonadRandom m => Link -> StateT Innovations m (Id Innovation)
+getInnovationID :: Monad m => Link -> StateT Innovations m (Id Innovation)
 getInnovationID link
   = do
     innovations <- get
@@ -61,41 +63,43 @@ getInnovationID link
       Just innovID -> return innovID
       Nothing      -> trackInnovation link
 
-addLink :: MonadRandom m =>
-  Link -> Float -> Genome -> StateT Innovations m Genome
-addLink link weight genome
+addGene :: Monad m => Link -> Float -> Genome -> StateT Innovations m Genome
+addGene link weight genome
   = do
     innovID <- getInnovationID link
     let gene = Gene link weight True innovID
-     in return genome {genes = gene : genes genome}
+    return genome {genes = gene : genes genome}
 
-disable :: Gene -> Gene
-disable gene
-  = gene {enabled = False}
+disable :: Gene -> Genome -> Genome
+disable gene genome
+  = let (before, _ : after) = break (== gene) $ genes genome
+     in genome {genes = before ++ [gene {enabled = False}] ++ after}
 
-selectAndDisableRandomGene :: MonadRandom m => Genome -> m (Gene, Genome)
-selectAndDisableRandomGene genome
+splitGeneInTwo :: Monad m => Gene -> Genome -> StateT Innovations m Genome
+splitGeneInTwo gene genome
+  = let (hiddenNode, genome') = addHiddenNode $ disable gene genome
+        (Link inNode outNode) = link gene
+        linkIn = Link inNode hiddenNode
+        linkOut = Link hiddenNode outNode
+     in addGene linkIn 1.0 genome' >>= addGene linkOut (weight gene)
+
+mutateNode' :: MonadRandom m => Genome -> StateT Innovations m Genome
+mutateNode' genome
   = do
-    index <- getRandomR (0, (length $ genes genome) - 1)
-    let (before, gene : after) = splitAt index $ genes genome
-        genome' = genome {genes = before ++ [disable gene] ++ after}
-    return (gene, genome')
+    maybeGene <- pick $ genes genome
+    case maybeGene of
+      Nothing   -> return genome -- empty genome
+      Just gene -> splitGeneInTwo gene genome
 
 mutateNode :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
 mutateNode genome innovations
-  = do
-    (gene, genome') <- selectAndDisableRandomGene genome
-    let (Link inNode outNode) = link gene
-        (hiddenNode, genome'') = addHiddenNode genome'
-        addInGene = addLink (Link inNode hiddenNode) 1.0
-        addOutGene = addLink (Link hiddenNode outNode) (weight gene)
-    runStateT (addInGene genome'' >>= addOutGene) innovations
+  = runStateT (mutateNode' genome) innovations
 
 getIncommingNodes :: Genome -> Id Node -> [Id Node]
 getIncommingNodes genome node
   = let links = map link $ genes genome
-        incommingLinks = filter (\l -> outNode l == node)
-        incommingNodes = map inNode links
+        incommingLinks = filter (\l -> outNode l == node) links
+        incommingNodes = map inNode incommingLinks
      in incommingNodes ++ concatMap (getIncommingNodes genome) incommingNodes
 
 isNotCyclic :: Genome -> Link -> Bool
@@ -109,21 +113,25 @@ isValidLink genome link'
 
 getUnlinkedNodePairs :: Genome -> [Link]
 getUnlinkedNodePairs genome
-  = let allLinks = zipWith Link (inputs genome ++ hidden genome) (outputs genome ++ hidden genome)
+  = let linkInputs = inputs genome ++ hidden genome
+        linkOutputs = outputs genome ++ hidden genome
+        allLinks = zipWith Link linkInputs linkOutputs
      in filter (isValidLink genome) allLinks
 
-addRandomLink :: MonadRandom m => Link -> Genome -> StateT Innovations m Genome
-addRandomLink link genome
+addRandomGene :: MonadRandom m => Link -> Genome -> StateT Innovations m Genome
+addRandomGene link genome
   = do
     weight <- getRandomR (-2.0, 2.0)
-    addLink link weight genome
+    addGene link weight genome
 
-mutateLink :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
-mutateLink genome innovations
+mutateLink' :: MonadRandom m => Genome -> StateT Innovations m Genome
+mutateLink' genome
   = do
     maybeLink <- pick $ getUnlinkedNodePairs genome
     case maybeLink of
-      Nothing -> return (genome, innovations) -- genome is fully connected already
-      Just link -> do
-        weight <- getRandomR (-2.0, 2.0)
-        runStateT (addLink link weight genome) innovations
+      Nothing   -> return genome -- genome is fully connected already
+      Just link -> addRandomGene link genome
+
+mutateLink :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
+mutateLink genome innovations
+  = runStateT (mutateLink' genome) innovations
