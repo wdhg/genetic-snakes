@@ -84,3 +84,20 @@ breed (AssessedGenome genome0 fitness0) (AssessedGenome genome1 fitness1)
         , outputs = outputs genome0
         , hidden = nub $ (hidden genome0) ++ (hidden genome1)
         }
+
+isDisjoint :: Alignment -> Bool
+isDisjoint (Aligned _ _)
+  = False
+isDisjoint _
+  = True
+
+distance :: Genome -> Genome -> Float
+distance genome0 genome1
+  = let (AlignedGenomes aligned) = alignGenomes genome0 genome1
+        disjoint = fromIntegral $ length $ filter isDisjoint aligned
+        n = fromIntegral $ max (length $ genes genome0) (length $ genes genome1)
+        getWeightDistance (Aligned g0 g1)
+          = abs $ weight g0 - weight g1
+        totalWeightDistance
+          = (sum $ map getWeightDistance $ filter (not . isDisjoint) aligned)
+     in (disjoint + totalWeightDistance * 0.4) / n

@@ -26,6 +26,7 @@ library
       Neat.Base
       Neat.Breeding
       Neat.Mutation
+      Neat.Population
       Snake
   other-modules:
       Paths_genetic_snakes
