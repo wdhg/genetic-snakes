@@ -38,5 +38,14 @@ data Genome
     , hidden  :: [Id Node]
     } deriving (Show, Eq)
 
+newtype Fitness
+  = Fitness Float deriving (Show, Eq, Ord)
+
+data AssessedGenome
+  = AssessedGenome
+    { genome  :: Genome
+    , fitness :: Fitness
+    }
+
 type Innovations
   = [(Link, Id Innovation)]
