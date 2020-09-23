@@ -99,3 +99,39 @@ breed assessed0 assessed1
         alignments = alignGenomes (genome assessed0) (genome assessed1)
         offspring = getOffspringBasis assessed0 assessed1
      in foldM (inherit mode) offspring alignments
+
+largerGenomeSize :: [Gene] -> [Gene] -> Float
+largerGenomeSize genes0 genes1
+  = fromIntegral $ max (length genes0) (length genes1)
+
+isDisjoint :: Alignment -> Bool
+isDisjoint (Aligned _ _)
+  = False
+isDisjoint _
+  = True
+
+countAlignments :: [Alignment] -> (Float, Float)
+countAlignments []
+  = (0.0, 0.0)
+countAlignments (alignment:alignments)
+  | isDisjoint alignment = (alignedCount, disjointCount + 1)
+  | otherwise = (alignedCount + 1, disjointCount)
+    where
+      (alignedCount, disjointCount) = countAlignments alignments
+
+totalWeightDelta :: [Alignment] -> Float
+totalWeightDelta []
+  = 0.0
+calcTotalWeightDelta (alignment:alignments)
+  = let remaining = calcTotalWeightDelta alignments
+     in case alignment of
+          (Aligned g0 g1) -> (abs $ weight g0 - weight g1) + remaining
+          _               -> remaining
+
+compatibility :: Genome -> Genome -> Float
+compatibility genome0 genome1
+  = let alignments = alignGenomes genome0 genome1
+        geneCount = largerGenomeSize (genes genome0) (genes genome1)
+        (alignedCount, disjointCount) = countAlignments alignments
+        meanWeightDelta = (totalWeightDelta alignments) / alignedCount
+     in disjointCount / geneCount + meanWeightDelta * 0.4
