@@ -16,88 +16,86 @@ data Alignment
   | RightDisjoint Gene
     deriving (Show, Eq)
 
-data AlignedGenomes
-  = AlignedGenomes [Alignment] deriving (Show, Eq)
-
-alignGenomes' :: [Gene] -> [Gene] -> [Alignment]
-alignGenomes' genes0 []
+alignGenes :: [Gene] -> [Gene] -> [Alignment]
+alignGenes genes0 []
   = map LeftDisjoint genes0
-alignGenomes' [] genes1
+alignGenes [] genes1
   = map RightDisjoint genes1
-alignGenomes' (gene0:genes0) (gene1:genes1)
-  | gene0 > gene1 = (LeftDisjoint gene0) : alignGenomes' genes0 (gene1:genes1)
-  | gene0 < gene1 = (RightDisjoint gene1) : alignGenomes' (gene0:genes0) genes1
-  | otherwise     = Aligned gene0 gene1 : alignGenomes' genes0 genes1
+alignGenes (gene0:genes0) (gene1:genes1)
+  | gene0 > gene1 = (LeftDisjoint gene0) : alignGenes genes0 (gene1:genes1)
+  | gene0 < gene1 = (RightDisjoint gene1) : alignGenes (gene0:genes0) genes1
+  | otherwise     = Aligned gene0 gene1 : alignGenes genes0 genes1
 
-alignGenomes :: Genome -> Genome -> AlignedGenomes
+alignGenomes :: Genome -> Genome -> [Alignment]
 alignGenomes genome0 genome1
-  = AlignedGenomes $ alignGenomes' (genes genome0) (genes genome1)
+  = alignGenes (genes genome0) (genes genome1)
 
-inherit :: MonadRandom m => Genome -> Gene -> m Genome
-inherit offspring gene
-  = do
-    if not $ enabled gene
-       then do
-         value <- getRandomR (0.0, 1.0) :: MonadRandom m => m Float
-         let gene' = gene {enabled = value <= 0.25}
-         return offspring {genes = genes offspring ++ [gene']}
-       else return offspring {genes = genes offspring ++ [gene]}
+canInherit :: InheritMode -> Alignment -> Bool
+canInherit InheritLeft (RightDisjoint _)
+  = False
+canInherit InheritRight (LeftDisjoint _)
+  = False
+canInherit _ _
+  = True
 
-inheritLeft :: MonadRandom m => Genome -> Alignment -> m Genome
-inheritLeft offspring (LeftDisjoint gene)
-  = inherit offspring gene
-inheritLeft offspring (RightDisjoint _)
-  = return offspring
-inheritLeft offspring (Aligned gene _)
-  = inherit offspring gene
-
-inheritRight :: MonadRandom m => Genome -> Alignment -> m Genome
-inheritRight offspring (LeftDisjoint _)
-  = return offspring
-inheritRight offspring (RightDisjoint gene)
-  = inherit offspring gene
-inheritRight offspring (Aligned _ gene)
-  = inherit offspring gene
-
-inheritBoth :: MonadRandom m => Genome -> Alignment -> m Genome
-inheritBoth offspring alignment@(LeftDisjoint _)
-  = inheritLeft offspring alignment
-inheritBoth offspring alignment@(RightDisjoint _)
-  = inheritRight offspring alignment
-inheritBoth offspring alignment
+getGene :: MonadRandom m => Alignment -> m Gene
+getGene (LeftDisjoint gene)
+  = return gene
+getGene (RightDisjoint gene)
+  = return gene
+getGene (Aligned gene0 gene1)
   = do
     value <- getRandomR (0.0, 1.0) :: MonadRandom m => m Float
     if value < 0.5
-       then inheritLeft offspring alignment
-       else inheritRight offspring alignment
+       then return gene0
+       else return gene1
+
+eitherDisabled :: Alignment -> Bool
+eitherDisabled (LeftDisjoint gene)
+  = not $ enabled gene
+eitherDisabled (RightDisjoint gene)
+  = not $ enabled gene
+eitherDisabled (Aligned gene0 gene1)
+  = not $ enabled gene0 && enabled gene1
+
+chanceDisable :: MonadRandom m => Gene -> m Gene
+chanceDisable gene
+  = do
+    value <- getRandomR (0.0, 1.0) :: MonadRandom m => m Float
+    return $ gene {enabled = value <= 0.25}
+
+inherit :: MonadRandom m => InheritMode -> Genome -> Alignment -> m Genome
+inherit mode offspring alignment
+  | canInherit mode alignment = do
+      gene <- getGene alignment
+      if eitherDisabled alignment
+         then do
+           gene' <- chanceDisable gene
+           return offspring {genes = genes offspring ++ [gene']}
+        else return offspring {genes = genes offspring ++ [gene]}
+  | otherwise = return offspring
+
+getMode :: Fitness -> Fitness -> InheritMode
+getMode fitness0 fitness1
+  | fitness0 > fitness1 = InheritLeft
+  | fitness0 < fitness1 = InheritRight
+  | otherwise           = InheritBoth
+
+getOffspringBasis :: AssessedGenome -> AssessedGenome -> Genome
+getOffspringBasis assessed0 assessed1
+  = case getMode (fitness assessed0) (fitness assessed1) of
+      InheritLeft  -> (genome assessed0) {genes = []}
+      InheritRight -> (genome assessed1) {genes = []}
+      InheritBoth  -> let hidden0 = hidden $ genome assessed0
+                          hidden1 = hidden $ genome assessed1
+                       in (genome assessed0)
+                          { genes = []
+                          , hidden = nub $ hidden0 ++ hidden1
+                          }
 
 breed :: MonadRandom m => AssessedGenome -> AssessedGenome -> m Genome
-breed (AssessedGenome genome0 fitness0) (AssessedGenome genome1 fitness1)
-  | fitness0 > fitness1 = foldM inheritLeft (genome0 {genes = []}) aligned
-  | fitness0 < fitness1 = foldM inheritRight (genome1 {genes = []}) aligned
-  | otherwise           = foldM inheritBoth genome' aligned
-    where
-      (AlignedGenomes aligned) = alignGenomes genome0 genome1
-      genome' = Genome
-        { genes = []
-        , inputs = inputs genome0
-        , outputs = outputs genome0
-        , hidden = nub $ (hidden genome0) ++ (hidden genome1)
-        }
-
-isDisjoint :: Alignment -> Bool
-isDisjoint (Aligned _ _)
-  = False
-isDisjoint _
-  = True
-
-distance :: Genome -> Genome -> Float
-distance genome0 genome1
-  = let (AlignedGenomes aligned) = alignGenomes genome0 genome1
-        disjoint = fromIntegral $ length $ filter isDisjoint aligned
-        n = fromIntegral $ max (length $ genes genome0) (length $ genes genome1)
-        getWeightDistance (Aligned g0 g1)
-          = abs $ weight g0 - weight g1
-        totalWeightDistance
-          = (sum $ map getWeightDistance $ filter (not . isDisjoint) aligned)
-     in (disjoint + totalWeightDistance * 0.4) / n
+breed assessed0 assessed1
+  = let mode = getMode (fitness assessed0) (fitness assessed1)
+        alignments = alignGenomes (genome assessed0) (genome assessed1)
+        offspring = getOffspringBasis assessed0 assessed1
+     in foldM (inherit mode) offspring alignments
