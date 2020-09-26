@@ -129,3 +129,7 @@ compatibility genome0 genome1
         (alignedCount, disjointCount) = countAlignments alignments
         meanWeightDelta = (totalWeightDelta alignments) / alignedCount
      in disjointCount / geneCount + meanWeightDelta * 0.4
+
+isCompatible :: Genome -> Genome -> Bool
+isCompatible genome0 genome1
+  = compatibility genome0 genome1 <= 0.3
