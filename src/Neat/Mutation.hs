@@ -40,12 +40,8 @@ mutateWeights genome
 
 addHiddenNode :: Genome -> (Id Node, Genome)
 addHiddenNode genome
-  = case hidden genome of
-      []    -> let inputCount = length $ inputs genome
-                   outputCount = length $ outputs genome
-                   nodeCount = inputCount + outputCount
-                in (Id nodeCount, genome {hidden = [Id nodeCount]})
-      nodes -> (succ $ maximum nodes, genome)
+  = let nodes = (inputs genome) ++ (outputs genome) ++ (hidden genome)
+     in (succ $ maximum nodes, genome)
 
 trackInnovation :: Monad m => Link -> StateT Innovations m (Id Innovation)
 trackInnovation link
