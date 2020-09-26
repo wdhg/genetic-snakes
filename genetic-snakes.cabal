@@ -62,6 +62,7 @@ test-suite genetic-snakes-test
   other-modules:
       Neat.BreedingSpec
       Neat.MutationSpec
+      Neat.PopulationSpec
       Neat.TestUtils
       SnakeSpec
       Paths_genetic_snakes
