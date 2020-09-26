@@ -115,7 +115,7 @@ getUnlinkedNodePairs :: Genome -> [Link]
 getUnlinkedNodePairs genome
   = let linkInputs = inputs genome ++ hidden genome
         linkOutputs = outputs genome ++ hidden genome
-        allLinks = zipWith Link linkInputs linkOutputs
+        allLinks = [Link i o | i <- linkInputs, o <- linkOutputs]
      in filter (isValidLink genome) allLinks
 
 addRandomGene :: MonadRandom m => Link -> Genome -> StateT Innovations m Genome
