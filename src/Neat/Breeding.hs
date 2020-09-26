@@ -116,8 +116,8 @@ countAlignments (alignment:alignments)
 totalWeightDelta :: [Alignment] -> Float
 totalWeightDelta []
   = 0.0
-calcTotalWeightDelta (alignment:alignments)
-  = let remaining = calcTotalWeightDelta alignments
+totalWeightDelta (alignment:alignments)
+  = let remaining = totalWeightDelta alignments
      in case alignment of
           (Aligned g0 g1) -> (abs $ weight g0 - weight g1) + remaining
           _               -> remaining
