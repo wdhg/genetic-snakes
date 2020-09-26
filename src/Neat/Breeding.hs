@@ -104,20 +104,14 @@ largerGenomeSize :: [Gene] -> [Gene] -> Float
 largerGenomeSize genes0 genes1
   = fromIntegral $ max (length genes0) (length genes1)
 
-isDisjoint :: Alignment -> Bool
-isDisjoint (Aligned _ _)
-  = False
-isDisjoint _
-  = True
-
 countAlignments :: [Alignment] -> (Float, Float)
 countAlignments []
   = (0.0, 0.0)
 countAlignments (alignment:alignments)
-  | isDisjoint alignment = (alignedCount, disjointCount + 1)
-  | otherwise = (alignedCount + 1, disjointCount)
-    where
-      (alignedCount, disjointCount) = countAlignments alignments
+  = let (alignedCount, disjointCount) = countAlignments alignments
+     in case alignment of
+          (Aligned _ _) -> (alignedCount + 1, disjointCount)
+          _             -> (alignedCount, disjointCount + 1)
 
 totalWeightDelta :: [Alignment] -> Float
 totalWeightDelta []
