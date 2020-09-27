@@ -81,23 +81,23 @@ getMode fitness0 fitness1
   | fitness0 < fitness1 = InheritRight
   | otherwise           = InheritBoth
 
-getOffspringBasis :: AssessedGenome -> AssessedGenome -> Genome
-getOffspringBasis assessed0 assessed1
-  = case getMode (fitness assessed0) (fitness assessed1) of
-      InheritLeft  -> (genome assessed0) {genes = []}
-      InheritRight -> (genome assessed1) {genes = []}
-      InheritBoth  -> let hidden0 = hidden $ genome assessed0
-                          hidden1 = hidden $ genome assessed1
-                       in (genome assessed0)
+getOffspringBasis :: Organism -> Organism -> Genome
+getOffspringBasis organism0 organism1
+  = case getMode (fitness organism0) (fitness organism1) of
+      InheritLeft  -> (genome organism0) {genes = []}
+      InheritRight -> (genome organism1) {genes = []}
+      InheritBoth  -> let hidden0 = hidden $ genome organism0
+                          hidden1 = hidden $ genome organism1
+                       in (genome organism0)
                           { genes = []
                           , hidden = nub $ hidden0 ++ hidden1
                           }
 
-breed :: MonadRandom m => AssessedGenome -> AssessedGenome -> m Genome
-breed assessed0 assessed1
-  = let mode = getMode (fitness assessed0) (fitness assessed1)
-        alignments = alignGenomes (genome assessed0) (genome assessed1)
-        offspring = getOffspringBasis assessed0 assessed1
+breed :: MonadRandom m => Organism -> Organism -> m Genome
+breed organism0 organism1
+  = let mode = getMode (fitness organism0) (fitness organism1)
+        alignments = alignGenomes (genome organism0) (genome organism1)
+        offspring = getOffspringBasis organism0 organism1
      in foldM (inherit mode) offspring alignments
 
 largerGenomeSize :: [Gene] -> [Gene] -> Float

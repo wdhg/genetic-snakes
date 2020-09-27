@@ -10,8 +10,8 @@ spec
   = do
     describe "newPopulation" $ do
       let result = evalRand (newPopulation 25 genome2) (mkStdGen 0)
-          resultGenomes = concatMap members $ species result
+          resultOrganisms= concatMap members $ species result
       it "produces a population of a desired size" $ do
-        length resultGenomes `shouldBe` 25
+        length resultOrganisms `shouldBe` 25
       it "each offspring should have one more gene than the template" $ do
-        mapM_ (\g -> (length $ genes g) `shouldBe` 1) resultGenomes
+        mapM_ (\g -> (length $ genes $ genome g) `shouldBe` 1) resultOrganisms

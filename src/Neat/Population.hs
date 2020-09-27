@@ -8,7 +8,7 @@ import Neat.Mutation        (mutateLink)
 data Species
   = Species
     { representative :: Genome
-    , members        :: [Genome]
+    , members        :: [Organism]
     }
 
 data Population
@@ -17,37 +17,42 @@ data Population
     , innovations :: Innovations
     }
 
-populate' :: MonadRandom m => ([Genome], Innovations) -> Genome -> m ([Genome], Innovations)
-populate' (gs, innovations) template
+populate' :: MonadRandom m => ([Organism], Innovations) -> Genome -> m ([Organism], Innovations)
+populate' (os, innovations) template
   = do
     (g, innovations') <- mutateLink template innovations
-    return (g:gs, innovations')
+    let o = Organism g (Fitness 0)
+    return (o:os, innovations')
 
-populate :: MonadRandom m => Int -> Genome -> m ([Genome], Innovations)
+populate :: MonadRandom m => Int -> Genome -> m ([Organism], Innovations)
 populate size template
   = foldM populate' ([], []) $ replicate size template
 
-isMember :: Genome -> Species -> Bool
-isMember g s
-  = isCompatible g $ representative s
+isMember :: Organism -> Species -> Bool
+isMember o s
+  = isCompatible (genome o) $ representative s
 
-addMember :: Genome -> Species -> Species
-addMember g s
-  = s {members = g : members s}
+addMember :: Organism -> Species -> Species
+addMember o s
+  = s {members = o : members s}
 
-speciate' :: Genome -> [Species] -> [Species]
-speciate' g []
-  = [Species g [g]]
-speciate' g (s:s')
-  | isMember g s = addMember g s : s'
-  | otherwise    = s : speciate' g s'
+speciate' :: Organism -> [Species] -> [Species]
+speciate' o []
+  = [Species (genome o) [o]]
+speciate' o (s:s')
+  | isMember o s = addMember o s : s'
+  | otherwise    = s : speciate' o s'
 
-speciate :: [Genome] -> [Species]
+speciate :: [Organism] -> [Species]
 speciate
   = foldr speciate' []
+
+nextGeneration :: MonadRandom m => Innovations -> Population -> m (Population, Innovations)
+nextGeneration innovations population
+  = undefined
 
 newPopulation :: MonadRandom m => Int -> Genome -> m Population
 newPopulation size template
   = do
-    (genomes, innovations) <- populate size template
-    return $ Population (speciate genomes) innovations
+    (organisms, innovations) <- populate size template
+    return $ Population (speciate organisms) innovations

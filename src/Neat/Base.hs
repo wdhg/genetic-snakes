@@ -41,8 +41,8 @@ data Genome
 newtype Fitness
   = Fitness Float deriving (Show, Eq, Ord)
 
-data AssessedGenome
-  = AssessedGenome
+data Organism
+  = Organism
     { genome  :: Genome
     , fitness :: Fitness
     }

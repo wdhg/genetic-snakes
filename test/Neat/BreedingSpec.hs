@@ -5,9 +5,9 @@ import Neat
 import Neat.TestUtils
 import Test.Hspec
 
-assessed0, assessed1 :: AssessedGenome
-assessed0 = AssessedGenome genome0 (Fitness 1.0)
-assessed1 = AssessedGenome genome1 (Fitness 0.5)
+assessed0, assessed1 :: Organism
+assessed0 = Organism genome0 (Fitness 1.0)
+assessed1 = Organism genome1 (Fitness 0.5)
 
 spec :: Spec
 spec
