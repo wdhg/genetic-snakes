@@ -5,9 +5,9 @@ import Neat
 import Neat.TestUtils
 import Test.Hspec
 
-assessed0, assessed1 :: Organism
-assessed0 = Organism genome0 (Fitness 1.0)
-assessed1 = Organism genome1 (Fitness 0.5)
+organism0, organism1 :: Organism
+organism0 = Organism genome0 (Fitness 1.0)
+organism1 = Organism genome1 (Fitness 0.5)
 
 spec :: Spec
 spec
@@ -28,7 +28,7 @@ spec
 
     describe "breed" $ do
       it "should produce genomes with the same structure as the fitter parent" $ do
-        let result = evalRand (breed assessed0 assessed1) (mkStdGen 0)
+        let result = evalRand (breed organism0 organism1) (mkStdGen 0)
         genes result `shouldBe` genes genome0
         inputs result `shouldBe` [Id 0]
         outputs result `shouldBe` [Id 1]
