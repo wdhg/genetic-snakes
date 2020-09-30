@@ -132,3 +132,21 @@ mutateLink' genome
 mutateLink :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
 mutateLink genome innovations
   = runStateT (mutateLink' genome) innovations
+
+onChance :: MonadRandom m => Float -> (a -> m a) -> a -> m a
+onChance chance f x
+  = do
+    value <- getRandomR (0, 1)
+    if value < chance
+       then f x
+       else return x
+
+mutate' :: MonadRandom m => Genome -> StateT Innovations m Genome
+mutate' g
+  = do
+    g' <- lift (onChance 0.8 mutateWeights g)
+    (onChance 0.05 mutateLink' g') >>= (onChance 0.03 mutateNode')
+
+mutate :: MonadRandom m => Genome -> Innovations -> m (Genome, Innovations)
+mutate g is
+  = runStateT (mutate' g) is
